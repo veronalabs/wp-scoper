@@ -41,6 +41,9 @@ class Config
     /** @var DevConfig|null */
     private $devPackages;
 
+    /** @var array<string, string> PSR-4 mappings from the host project's autoload config */
+    private $hostAutoloadPsr4;
+
     /** @var string */
     private $workingDirectory;
 
@@ -52,7 +55,7 @@ class Config
             throw new InvalidArgumentException('wp-scoper: "namespace_prefix" is required in extra.wp-scoper config.');
         }
 
-        if (empty($config['packages'])) {
+        if (!isset($config['packages'])) {
             throw new InvalidArgumentException('wp-scoper: "packages" is required in extra.wp-scoper config.');
         }
 
@@ -69,6 +72,7 @@ class Config
         $this->devPackages = isset($config['dev_packages'])
             ? DevConfig::fromArray($config['dev_packages'])
             : null;
+        $this->hostAutoloadPsr4 = [];
     }
 
     public static function fromComposerJson(string $composerJsonPath): self
@@ -87,12 +91,21 @@ class Config
             throw new InvalidArgumentException('No "extra.wp-scoper" configuration found in composer.json');
         }
 
-        return new self($config, dirname(realpath($composerJsonPath)));
+        $instance = new self($config, dirname(realpath($composerJsonPath)));
+
+        // Read host project's PSR-4 autoload mappings
+        if (isset($json['autoload']['psr-4'])) {
+            $instance->hostAutoloadPsr4 = $json['autoload']['psr-4'];
+        }
+
+        return $instance;
     }
 
-    public static function fromArray(array $config, string $workingDirectory = '.'): self
+    public static function fromArray(array $config, string $workingDirectory = '.', array $hostAutoloadPsr4 = []): self
     {
-        return new self($config, $workingDirectory);
+        $instance = new self($config, $workingDirectory);
+        $instance->hostAutoloadPsr4 = $hostAutoloadPsr4;
+        return $instance;
     }
 
     public static function deriveClassPrefix(string $namespacePrefix): string
@@ -184,6 +197,12 @@ class Config
     public function getWorkingDirectory(): string
     {
         return $this->workingDirectory;
+    }
+
+    /** @return array<string, string> */
+    public function getHostAutoloadPsr4(): array
+    {
+        return $this->hostAutoloadPsr4;
     }
 
     public function getVendorDirectory(): string

@@ -66,7 +66,11 @@ class Plugin implements PluginInterface, EventSubscriberInterface, Capable
             $vendorDir = $this->composer->getConfig()->get('vendor-dir');
             $workingDir = dirname($vendorDir);
 
-            $config = Config::fromArray($extra['wp-scoper'], $workingDir);
+            // Read host project's PSR-4 autoload config
+            $autoload = $this->composer->getPackage()->getAutoload();
+            $hostPsr4 = $autoload['psr-4'] ?? [];
+
+            $config = Config::fromArray($extra['wp-scoper'], $workingDir, $hostPsr4);
 
             $prefixer = new Prefixer($config, function (string $message) {
                 $this->io->write("  <comment>{$message}</comment>");

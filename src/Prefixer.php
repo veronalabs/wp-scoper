@@ -32,6 +32,28 @@ class Prefixer
     {
         $this->log('Starting wp-scoper...');
 
+        if (empty($this->config->getPackages())) {
+            $this->log('No packages configured.');
+
+            // Still generate autoloader if host project has PSR-4 mappings
+            if (!empty($this->config->getHostAutoloadPsr4())) {
+                $targetDir = $this->config->getAbsoluteTargetDirectory();
+                if (!is_dir($targetDir)) {
+                    mkdir($targetDir, 0777, true);
+                }
+                $this->log('Generating autoloader for host project...');
+                $generator = new AutoloadGenerator();
+                $generator->generate(
+                    $targetDir,
+                    [],
+                    $this->config->getHostAutoloadPsr4(),
+                    $this->config->getWorkingDirectory()
+                );
+            }
+
+            return;
+        }
+
         // Step 1: Find packages (including transitive deps)
         $this->log('Finding packages...');
         $packageFinder = new PackageFinder($this->config->getVendorDirectory());
@@ -147,7 +169,12 @@ class Prefixer
         // Step 7: Generate autoloader
         $this->log('Generating autoloader...');
         $generator = new AutoloadGenerator();
-        $generator->generate($targetDir, $allFilesAutoload);
+        $generator->generate(
+            $targetDir,
+            $allFilesAutoload,
+            $this->config->getHostAutoloadPsr4(),
+            $this->config->getWorkingDirectory()
+        );
 
         // Step 8: Handle dev packages if configured
         $devConfig = $this->config->getDevPackages();

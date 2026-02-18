@@ -42,6 +42,16 @@ class ConfigTest extends TestCase
         ], '/tmp');
     }
 
+    public function testEmptyPackagesArrayIsValid(): void
+    {
+        $config = Config::fromArray([
+            'namespace_prefix' => 'WP_SMS\\Deps',
+            'packages' => [],
+        ], '/tmp');
+
+        $this->assertSame([], $config->getPackages());
+    }
+
     public function testDefaultValues(): void
     {
         $config = Config::fromArray([

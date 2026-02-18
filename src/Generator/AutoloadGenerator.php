@@ -13,12 +13,18 @@ class AutoloadGenerator
      *
      * @param string $targetDirectory
      * @param array<string> $filesAutoload Files that need require_once (from package autoload.files)
+     * @param array<string, string|string[]> $hostPsr4 Host project PSR-4 mappings (namespace => dir)
+     * @param string $projectRoot Absolute path to the host project root
      */
-    public function generate(string $targetDirectory, array $filesAutoload = []): void
-    {
+    public function generate(
+        string $targetDirectory,
+        array $filesAutoload = [],
+        array $hostPsr4 = [],
+        string $projectRoot = ''
+    ): void {
         $classmap = $this->buildClassmap($targetDirectory);
         $this->writeClassmap($targetDirectory, $classmap);
-        $this->writeAutoloader($targetDirectory, $filesAutoload);
+        $this->writeAutoloader($targetDirectory, $filesAutoload, $hostPsr4, $projectRoot);
     }
 
     /**
@@ -82,12 +88,62 @@ class AutoloadGenerator
         );
     }
 
-    private function writeAutoloader(string $targetDirectory, array $filesAutoload): void
-    {
+    private function writeAutoloader(
+        string $targetDirectory,
+        array $filesAutoload,
+        array $hostPsr4,
+        string $projectRoot
+    ): void {
         $filesRequires = '';
         foreach ($filesAutoload as $file) {
             $escapedFile = addcslashes($file, "'\\");
             $filesRequires .= "require_once __DIR__ . '/{$escapedFile}';\n";
+        }
+
+        // Build PSR-4 map for host project
+        $psr4Section = '';
+        if (!empty($hostPsr4) && $projectRoot !== '') {
+            // Calculate relative path from target directory to project root
+            $relativeToRoot = $this->getRelativePath($targetDirectory, $projectRoot);
+
+            $psr4Lines = [];
+            foreach ($hostPsr4 as $namespace => $dirs) {
+                $dirs = (array) $dirs;
+                foreach ($dirs as $dir) {
+                    $escapedNs = addcslashes($namespace, "'\\");
+                    $escapedDir = addcslashes($relativeToRoot . '/' . rtrim($dir, '/'), "'\\");
+                    $psr4Lines[] = "        '{$escapedNs}' => __DIR__ . '/{$escapedDir}',";
+                }
+            }
+
+            if (!empty($psr4Lines)) {
+                $psr4Map = implode("\n", $psr4Lines);
+                $psr4Section = <<<PHP
+
+// PSR-4 autoload (host project)
+spl_autoload_register(function (\$class) {
+    static \$psr4Map = [
+{$psr4Map}
+    ];
+
+    foreach (\$psr4Map as \$prefix => \$baseDir) {
+        \$len = strlen(\$prefix);
+        if (strncmp(\$prefix, \$class, \$len) !== 0) {
+            continue;
+        }
+
+        \$relativeClass = substr(\$class, \$len);
+        \$file = \$baseDir . '/' . str_replace('\\\\', '/', \$relativeClass) . '.php';
+
+        if (file_exists(\$file)) {
+            require \$file;
+            return;
+        }
+    }
+});
+
+PHP;
+            }
         }
 
         $content = <<<'PHP'
@@ -109,10 +165,46 @@ spl_autoload_register(function ($class) {
 
 PHP;
 
+        $content .= $psr4Section;
+
         if ($filesRequires !== '') {
             $content .= "\n// Files autoload\n" . $filesRequires;
         }
 
         file_put_contents($targetDirectory . '/autoload.php', $content);
+    }
+
+    /**
+     * Calculate relative path from one directory to another.
+     */
+    private function getRelativePath(string $from, string $to): string
+    {
+        $from = rtrim(str_replace('\\', '/', $from), '/');
+        $to = rtrim(str_replace('\\', '/', $to), '/');
+
+        $fromParts = explode('/', $from);
+        $toParts = explode('/', $to);
+
+        // Find common prefix
+        $common = 0;
+        $max = min(count($fromParts), count($toParts));
+        for ($i = 0; $i < $max; $i++) {
+            if ($fromParts[$i] !== $toParts[$i]) {
+                break;
+            }
+            $common++;
+        }
+
+        // Go up from $from to common ancestor
+        $ups = count($fromParts) - $common;
+        $relative = str_repeat('/..', $ups);
+
+        // Go down to $to from common ancestor
+        $downs = array_slice($toParts, $common);
+        if (!empty($downs)) {
+            $relative .= '/' . implode('/', $downs);
+        }
+
+        return ltrim($relative, '/');
     }
 }

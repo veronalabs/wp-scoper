@@ -303,6 +303,41 @@ Prefix `require-dev` packages into a separate directory for test isolation:
 
 This generates a separate autoloader at `tests/vendor-prefixed/autoload.php` loaded only during testing.
 
+## Standalone Autoloader (No `vendor/` in Production)
+
+WordPress plugins submitted to wordpress.org can't ship a `vendor/` directory. WP Scoper solves this by generating a standalone autoloader that handles **both** your own classes and prefixed dependencies — no `vendor/autoload.php` needed.
+
+WP Scoper automatically reads your project's `autoload.psr-4` from `composer.json` and includes it in the generated autoloader. For example, with this config:
+
+```json
+{
+    "autoload": {
+        "psr-4": {
+            "WP_SMS\\": "src/"
+        }
+    },
+    "extra": {
+        "wp-scoper": {
+            "namespace_prefix": "WP_SMS\\Deps",
+            "packages": ["geoip2/geoip2"],
+            "target_directory": "src/Dependencies"
+        }
+    }
+}
+```
+
+The generated `src/Dependencies/autoload.php` will autoload:
+1. **Prefixed dependencies** via classmap (`WP_SMS\Deps\GeoIp2\...`)
+2. **Your own classes** via PSR-4 (`WP_SMS\...` → `src/`)
+
+In your plugin, you only need one require:
+
+```php
+require_once __DIR__ . '/src/Dependencies/autoload.php';
+```
+
+This single file replaces `vendor/autoload.php` entirely. Ship `src/Dependencies/` in your plugin zip, keep `vendor/` in `.gitignore`.
+
 ## Requirements
 
 - PHP 7.4+
