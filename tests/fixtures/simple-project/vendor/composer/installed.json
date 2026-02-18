@@ -1,0 +1,44 @@
+{
+    "packages": [
+        {
+            "name": "geoip2/geoip2",
+            "version": "v2.13.0",
+            "install-path": "../geoip2/geoip2",
+            "autoload": {
+                "psr-4": {
+                    "GeoIp2\\": "src/"
+                }
+            },
+            "require": {
+                "maxmind-db/reader": "~1.8",
+                "php": ">=7.2"
+            }
+        },
+        {
+            "name": "maxmind-db/reader",
+            "version": "v1.11.0",
+            "install-path": "../maxmind-db/reader",
+            "autoload": {
+                "psr-4": {
+                    "MaxMind\\Db\\": "src/MaxMind/Db/"
+                }
+            },
+            "require": {
+                "php": ">=7.2"
+            }
+        },
+        {
+            "name": "psr/log",
+            "version": "3.0.0",
+            "install-path": "../psr/log",
+            "autoload": {
+                "psr-4": {
+                    "Psr\\Log\\": "src/Psr/Log/"
+                }
+            },
+            "require": {
+                "php": ">=8.0"
+            }
+        }
+    ]
+}

@@ -1,0 +1,16 @@
+{
+    "name": "test/simple-project",
+    "require": {
+        "geoip2/geoip2": "^2.0"
+    },
+    "extra": {
+        "wp-scoper": {
+            "namespace_prefix": "TestProject\\Deps",
+            "packages": ["geoip2/geoip2"],
+            "target_directory": "vendor-prefixed",
+            "exclude_packages": ["psr/log"],
+            "exclude_patterns": ["/\\.md$/"],
+            "exclude_directories": ["views", "templates"]
+        }
+    }
+}

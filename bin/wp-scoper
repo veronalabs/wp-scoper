@@ -1,0 +1,33 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+// Find autoloader
+$autoloadPaths = [
+    __DIR__ . '/../vendor/autoload.php',         // When running from this package directly
+    __DIR__ . '/../../../autoload.php',           // When installed as a dependency
+];
+
+$autoloader = null;
+foreach ($autoloadPaths as $path) {
+    if (file_exists($path)) {
+        $autoloader = $path;
+        break;
+    }
+}
+
+if ($autoloader === null) {
+    fwrite(STDERR, "Could not find autoloader. Run 'composer install' first.\n");
+    exit(1);
+}
+
+require $autoloader;
+
+use Symfony\Component\Console\Application;
+use VeronaLabs\WpScoper\Command\StandalonePrefixCommand;
+
+$application = new Application('wp-scoper', '1.0.0');
+$application->add(new StandalonePrefixCommand());
+$application->setDefaultCommand('prefix', true);
+$application->run();

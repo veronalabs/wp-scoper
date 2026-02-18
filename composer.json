@@ -1,0 +1,44 @@
+{
+    "name": "veronalabs/wp-scoper",
+    "description": "A Composer plugin that prefixes namespaces in WordPress plugin dependencies to prevent conflicts",
+    "type": "composer-plugin",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "VeronaLabs",
+            "email": "dev@veronalabs.com"
+        }
+    ],
+    "require": {
+        "php": "^7.4|^8.0",
+        "composer-plugin-api": "^2.0",
+        "symfony/console": "^5.4|^6.0|^7.0",
+        "symfony/finder": "^5.4|^6.0|^7.0",
+        "symfony/filesystem": "^5.4|^6.0|^7.0"
+    },
+    "require-dev": {
+        "composer/composer": "^2.0",
+        "phpunit/phpunit": "^9.6|^10.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "VeronaLabs\\WpScoper\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "VeronaLabs\\WpScoper\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "class": "VeronaLabs\\WpScoper\\Plugin"
+    },
+    "bin": [
+        "bin/wp-scoper"
+    ],
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "config": {
+        "sort-packages": true
+    }
+}
