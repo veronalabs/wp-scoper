@@ -14,6 +14,24 @@ GeoIp2\Database\Reader → WP_Statistics\Deps\GeoIp2\Database\Reader
 
 Each plugin gets its own isolated copy of dependencies. No conflicts.
 
+## Comparison
+
+| Feature | WP Scoper | Mozart | PHP-Scoper |
+|---|---|---|---|
+| Installation | `composer require --dev` | Global / PHAR | Global / PHAR |
+| Works on any machine | ✅ Yes | ❌ No | ❌ No |
+| Composer plugin | ✅ Yes (auto-runs) | ❌ No | ❌ No |
+| Namespace prefixing | ✅ Yes | ✅ Yes | ✅ Yes |
+| Global class prefixing | ✅ Yes | ✅ Yes | ✅ Yes |
+| Constant prefixing | ✅ Yes | ❌ No | ✅ Yes |
+| Template/view safety | ✅ Auto-detect + config | ❌ No | ⚠️ Manual exclude |
+| WordPress function safety | ✅ Safe | ✅ Safe | ❌ Breaks WP functions |
+| Property name bug | ✅ Fixed | ❌ Had bugs | ➖ N/A (AST) |
+| Autoloader generation | ✅ Yes (classmap) | ❌ No | ⚠️ Partial |
+| Dev-dependency support | ✅ Yes | ❌ No | ❌ No |
+| Update host source files | ✅ Yes | ❌ No | ➖ N/A |
+| PHP version support | 7.4+ | 8.1+ | 7.2+ |
+
 ## Installation
 
 ```bash
@@ -268,24 +286,6 @@ Template files are still copied to the target directory; they just aren't modifi
 - PHP built-in constants: `PHP_EOL`, `DIRECTORY_SEPARATOR`, etc.
 - Files matching `exclude_patterns`
 - Template/view files (auto-detected)
-
-## Comparison
-
-| Feature | wp-scoper | Mozart | PHP-Scoper |
-|---|---|---|---|
-| Installation | `composer require --dev` | Global / PHAR | Global / PHAR |
-| Works on any machine | ✅ Yes | ❌ No | ❌ No |
-| Composer plugin | ✅ Yes (auto-runs) | ❌ No | ❌ No |
-| Namespace prefixing | ✅ Yes | ✅ Yes | ✅ Yes |
-| Global class prefixing | ✅ Yes | ✅ Yes | ✅ Yes |
-| Constant prefixing | ✅ Yes | ❌ No | ✅ Yes |
-| Template/view safety | ✅ Auto-detect + config | ❌ No | ⚠️ Manual exclude |
-| WordPress function safety | ✅ Safe | ✅ Safe | ❌ Breaks WP functions |
-| Property name bug | ✅ Fixed | ❌ Had bugs | ➖ N/A (AST) |
-| Autoloader generation | ✅ Yes (classmap) | ❌ No | ⚠️ Partial |
-| Dev-dependency support | ✅ Yes | ❌ No | ❌ No |
-| Update host source files | ✅ Yes | ❌ No | ➖ N/A |
-| PHP version support | 7.4+ | 8.1+ | 7.2+ |
 
 ## Dev-Dependencies Support
 

@@ -35,7 +35,7 @@ jobs:
         run: composer install --no-interaction --prefer-dist
 
       - name: Run unit tests
-        run: vendor/bin/phpunit --testsuite Unit
+        run: vendor/bin/phpunit --testsuite Unit --testdox
 
       - name: Run integration tests
-        run: vendor/bin/phpunit --testsuite Integration
+        run: vendor/bin/phpunit --testsuite Integration --testdox
