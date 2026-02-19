@@ -100,6 +100,54 @@ class ClassmapReplacerTest extends TestCase
         $this->assertStringNotContainsString('WPS_WPS_', $result);
     }
 
+    public function testDoesNotRenameClassDeclarationInNamespacedFile(): void
+    {
+        $replacer = new ClassmapReplacer('WPS_', ['Spyc']);
+        // A namespaced file with class Spyc — this is DeviceDetector\Yaml\Spyc,
+        // NOT the global Spyc class. Should not be renamed.
+        $input = "<?php\nnamespace DeviceDetector\\Yaml;\n\nuse Spyc as SpycParser;\n\nclass Spyc implements ParserInterface\n{";
+        $result = $replacer->replace($input);
+
+        // Class declaration must stay as Spyc (it's a namespaced class)
+        $this->assertStringContainsString('class Spyc implements ParserInterface', $result);
+        $this->assertStringNotContainsString('class WPS_Spyc', $result);
+        // But the use import should be renamed
+        $this->assertStringContainsString('use WPS_Spyc as SpycParser;', $result);
+    }
+
+    public function testPrefixesUseImportOfGlobalClass(): void
+    {
+        $replacer = new ClassmapReplacer('WPS_', ['Spyc']);
+        $input = "<?php\nnamespace App\\Yaml;\n\nuse Spyc;\n";
+        $result = $replacer->replace($input);
+
+        $this->assertStringContainsString('use WPS_Spyc;', $result);
+    }
+
+    public function testPrefixesUseImportWithAlias(): void
+    {
+        $replacer = new ClassmapReplacer('WPS_', ['Spyc']);
+        $input = "<?php\nnamespace App\\Yaml;\n\nuse Spyc as SpycParser;\n";
+        $result = $replacer->replace($input);
+
+        $this->assertStringContainsString('use WPS_Spyc as SpycParser;', $result);
+    }
+
+    public function testSkipsUsagePatternsWhenNamespacedImportExists(): void
+    {
+        $replacer = new ClassmapReplacer('WPS_', ['Spyc']);
+        // DeviceDetector.php has: use DeviceDetector\Yaml\Spyc; ... return new Spyc();
+        // The `new Spyc()` resolves to the use-imported class, NOT the global Spyc.
+        $input = "<?php\nnamespace App;\n\nuse App\\Yaml\\Spyc;\n\nreturn new Spyc();\nSpyc::load(\$f);\n\$x = 'Spyc';";
+        $result = $replacer->replace($input);
+
+        // Usage patterns should NOT be replaced (they resolve via the use import)
+        $this->assertStringContainsString('return new Spyc();', $result);
+        $this->assertStringContainsString('Spyc::load(', $result);
+        // String references should still be replaced (strings don't use imports)
+        $this->assertStringContainsString("'WPS_Spyc'", $result);
+    }
+
     public function testFindGlobalClasses(): void
     {
         $tempFile = tempnam(sys_get_temp_dir(), 'wp-scoper-test');

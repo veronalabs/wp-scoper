@@ -72,59 +72,81 @@ class ClassmapReplacer implements ReplacerInterface
         $prefixed = $this->prefix . $class;
         $quotedClass = preg_quote($class, '/');
         $quotedPrefix = preg_quote($this->prefix, '/');
+        $isNamespaced = (bool) preg_match('/^\s*namespace\s+[A-Za-z]/m', $contents);
 
-        // Class declarations: class ClassName, interface ClassName, trait ClassName
-        $contents = preg_replace(
-            '/^(\s*(?:abstract\s+|final\s+)?(?:class|interface|trait)\s+)(?!' . $quotedPrefix . ')(' . $quotedClass . ')(?=\s|{|$)/m',
-            '$1' . $prefixed,
-            $contents
-        );
+        // Class declarations: only rename in non-namespaced (global) files.
+        // A namespaced file may have a class with the same name as a global class
+        // (e.g. DeviceDetector\Yaml\Spyc vs global Spyc) — don't rename it.
+        if (!$isNamespaced) {
+            $contents = preg_replace(
+                '/^(\s*(?:abstract\s+|final\s+)?(?:class|interface|trait)\s+)(?!' . $quotedPrefix . ')(' . $quotedClass . ')(?=\s|{|$)/m',
+                '$1' . $prefixed,
+                $contents
+            );
+        }
 
         // For usage patterns, use \PrefixedClass (fully qualified) so it resolves
         // correctly inside namespaced files. Declarations and strings don't need \.
         $fqPrefixed = '\\' . $prefixed;
 
-        // extends/implements: extends ClassName, implements ClassName
+        // use ClassName or use ClassName as Alias (importing global classes)
         $contents = preg_replace(
-            '/((?:extends|implements)\s+(?:[A-Za-z0-9_\\\\]+\s*,\s*)*)(?!\\\\?' . $quotedPrefix . ')(' . $quotedClass . ')(?=\s|,|{|$)/m',
-            '$1' . $fqPrefixed,
+            '/^(use\s+)(?!\\\\?' . $quotedPrefix . ')(' . $quotedClass . ')(\s+as\s+[A-Za-z_][A-Za-z0-9_]*)?(\s*;)/m',
+            '$1' . $prefixed . '$3$4',
             $contents
         );
 
-        // new ClassName
-        $contents = preg_replace(
-            '/(new\s+)(?!\\\\?' . $quotedPrefix . ')(' . $quotedClass . ')(?=\s*\(|\s*;|\s*$)/m',
-            '$1' . $fqPrefixed,
+        // In namespaced files, if there's a `use Something\ClassName;` import,
+        // bare ClassName resolves to the imported (namespaced) class, not the global one.
+        // Only replace string references in that case (strings don't use use-imports).
+        $hasNamespacedImport = $isNamespaced && preg_match(
+            '/^use\s+[A-Za-z0-9_\\\\]+\\\\' . $quotedClass . '\s*(;|\\s+as\\s)/m',
             $contents
         );
 
-        // instanceof ClassName
-        $contents = preg_replace(
-            '/(instanceof\s+)(?!\\\\?' . $quotedPrefix . ')(' . $quotedClass . ')(?=\s|;|\))/m',
-            '$1' . $fqPrefixed,
-            $contents
-        );
+        if (!$hasNamespacedImport) {
+            // extends/implements: extends ClassName, implements ClassName
+            $contents = preg_replace(
+                '/((?:extends|implements)\s+(?:[A-Za-z0-9_\\\\]+\s*,\s*)*)(?!\\\\?' . $quotedPrefix . ')(' . $quotedClass . ')(?=\s|,|{|$)/m',
+                '$1' . $fqPrefixed,
+                $contents
+            );
 
-        // ClassName::  (static calls)
-        $contents = preg_replace(
-            '/(?<![A-Za-z0-9_$\\\\>])(?!' . $quotedPrefix . ')(' . $quotedClass . ')(::)/',
-            $fqPrefixed . '$2',
-            $contents
-        );
+            // new ClassName
+            $contents = preg_replace(
+                '/(new\s+)(?!\\\\?' . $quotedPrefix . ')(' . $quotedClass . ')(?=\s*\(|\s*;|\s*$)/m',
+                '$1' . $fqPrefixed,
+                $contents
+            );
 
-        // Type hints: function foo(ClassName $x)
-        $contents = preg_replace(
-            '/([\(,]\s*(?:\?\s*)?)(?!\\\\?' . $quotedPrefix . ')(' . $quotedClass . ')(\s+\$)/',
-            '$1' . $fqPrefixed . '$3',
-            $contents
-        );
+            // instanceof ClassName
+            $contents = preg_replace(
+                '/(instanceof\s+)(?!\\\\?' . $quotedPrefix . ')(' . $quotedClass . ')(?=\s|;|\))/m',
+                '$1' . $fqPrefixed,
+                $contents
+            );
 
-        // Return types: ): ClassName
-        $contents = preg_replace(
-            '/(:\s*(?:\?\s*)?)(?!\\\\?' . $quotedPrefix . ')(' . $quotedClass . ')(?=\s*[{;])/',
-            '$1' . $fqPrefixed,
-            $contents
-        );
+            // ClassName::  (static calls)
+            $contents = preg_replace(
+                '/(?<![A-Za-z0-9_$\\\\>])(?!' . $quotedPrefix . ')(' . $quotedClass . ')(::)/',
+                $fqPrefixed . '$2',
+                $contents
+            );
+
+            // Type hints: function foo(ClassName $x)
+            $contents = preg_replace(
+                '/([\(,]\s*(?:\?\s*)?)(?!\\\\?' . $quotedPrefix . ')(' . $quotedClass . ')(\s+\$)/',
+                '$1' . $fqPrefixed . '$3',
+                $contents
+            );
+
+            // Return types: ): ClassName
+            $contents = preg_replace(
+                '/(:\s*(?:\?\s*)?)(?!\\\\?' . $quotedPrefix . ')(' . $quotedClass . ')(?=\s*[{;])/',
+                '$1' . $fqPrefixed,
+                $contents
+            );
+        }
 
         // String references: 'ClassName' and "ClassName"
         $contents = preg_replace(
