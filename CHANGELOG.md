@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.2 - 2026-02-20
+
+### Fixed
+- `deleteVendorPackages` now cleans up empty parent org directories (e.g., `vendor/geoip2/` after removing `vendor/geoip2/geoip2/`)
+
+### Docs
+- Updated README examples to use `packages` as the recommended `target_directory` instead of `src/Dependencies`
+
+---
+
 ## 1.2.0 - 2026-02-19
 
 ### Added

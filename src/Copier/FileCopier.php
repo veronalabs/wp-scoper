@@ -98,6 +98,12 @@ class FileCopier
         foreach ($packages as $package) {
             if (is_dir($package->getPath())) {
                 $this->filesystem->remove($package->getPath());
+
+                // Clean up empty parent org directory (e.g., vendor/geoip2/ after removing vendor/geoip2/geoip2/)
+                $parentDir = dirname($package->getPath());
+                if (is_dir($parentDir) && count(scandir($parentDir)) === 2) {
+                    $this->filesystem->remove($parentDir);
+                }
             }
         }
     }
