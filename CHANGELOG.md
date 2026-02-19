@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.1.0 - 2026-02-19
+
+### Added
+- **Files Excluded** and **Output Size** stats in summary table
+- Output size shows original vs output with reduction percentage (e.g., `2.3 MB / 2.7 MB (-14%)`)
+- Built-in exclude patterns for `tests/`, `bin/`, `dev-bin/`, `Makefile`, `phpunit.xml`, `.travis.yml`, `Dockerfile`, `COPYING`
+- Output stats table documented in README
+
+### Fixed
+- **Global class resolution in namespaced files**: Classes like `WP_Statistics_Spyc` now use fully qualified names (`\WP_Statistics_Spyc`) in usage contexts so they resolve correctly inside namespaced files
+- **Class declaration in namespaced files**: Namespaced classes sharing a name with a global class (e.g., `DeviceDetector\Yaml\Spyc` vs global `Spyc`) are no longer incorrectly renamed
+- **Use-import for global classes**: Added `use ClassName` and `use ClassName as Alias` pattern to ClassmapReplacer
+- **Namespace-imported class collision**: When a namespaced file has `use Something\ClassName`, bare `ClassName` usage (new, instanceof, etc.) is no longer replaced since it resolves to the import, not the global class
+
+---
+
 ## 1.0.0 - 2026-02-19
 
 ### Added

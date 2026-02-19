@@ -31,7 +31,7 @@ class FileCopier
     /**
      * Copy a package to the target directory.
      *
-     * @return array{php_files: string[], template_files: string[], excluded_files: int, total_size: int} Lists of copied files and stats
+     * @return array{php_files: string[], template_files: string[], excluded_files: int, total_size: int, original_size: int}
      */
     public function copyPackage(Package $package, string $targetDirectory): array
     {
@@ -39,19 +39,21 @@ class FileCopier
         $packageTarget = $targetDirectory . '/' . $package->getName();
 
         if (!is_dir($sourcePath)) {
-            return ['php_files' => [], 'template_files' => [], 'excluded_files' => 0, 'total_size' => 0];
+            return ['php_files' => [], 'template_files' => [], 'excluded_files' => 0, 'total_size' => 0, 'original_size' => 0];
         }
 
         $phpFiles = [];
         $templateFiles = [];
         $excludedFiles = 0;
         $totalSize = 0;
+        $originalSize = 0;
 
         $finder = new Finder();
         $finder->files()->in($sourcePath)->ignoreDotFiles(true)->ignoreVCS(true);
 
         foreach ($finder as $file) {
             $relativePath = $file->getRelativePathname();
+            $originalSize += $file->getSize();
 
             if ($this->shouldExclude($relativePath)) {
                 $excludedFiles++;
@@ -72,7 +74,7 @@ class FileCopier
             }
         }
 
-        return ['php_files' => $phpFiles, 'template_files' => $templateFiles, 'excluded_files' => $excludedFiles, 'total_size' => $totalSize];
+        return ['php_files' => $phpFiles, 'template_files' => $templateFiles, 'excluded_files' => $excludedFiles, 'total_size' => $totalSize, 'original_size' => $originalSize];
     }
 
     /**

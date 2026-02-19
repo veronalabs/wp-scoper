@@ -46,6 +46,7 @@ class Prefixer
             'php_files' => 0,
             'template_files' => 0,
             'excluded_files' => 0,
+            'original_size' => 0,
             'total_size' => 0,
             'namespaces' => 0,
             'global_classes' => 0,
@@ -110,6 +111,7 @@ class Prefixer
         $allTemplateFiles = [];
         $allFilesAutoload = [];
         $totalExcluded = 0;
+        $originalSize = 0;
         $totalSize = 0;
 
         foreach ($packages as $package) {
@@ -118,6 +120,7 @@ class Prefixer
             $allPhpFiles = array_merge($allPhpFiles, $result['php_files']);
             $allTemplateFiles = array_merge($allTemplateFiles, $result['template_files']);
             $totalExcluded += $result['excluded_files'];
+            $originalSize += $result['original_size'];
             $totalSize += $result['total_size'];
 
             // Collect files autoload entries
@@ -129,6 +132,7 @@ class Prefixer
         $this->stats['php_files'] = count($allPhpFiles);
         $this->stats['template_files'] = count($allTemplateFiles);
         $this->stats['excluded_files'] = $totalExcluded;
+        $this->stats['original_size'] = $originalSize;
         $this->stats['total_size'] = $totalSize;
 
         $this->log(sprintf(
@@ -387,7 +391,7 @@ class Prefixer
             ['Global Classes', (string) ($stats['global_classes'] ?? 0)],
             ['Constants', (string) ($stats['constants'] ?? 0)],
             ['Call Sites Updated', (string) ($stats['call_sites_updated'] ?? 0)],
-            ['Output Size', self::formatBytes((int) ($stats['total_size'] ?? 0))],
+            ['Output Size', self::formatSizeWithReduction((int) ($stats['original_size'] ?? 0), (int) ($stats['total_size'] ?? 0))],
             ['Target Directory', $stats['target_directory'] ?? '-'],
         ];
 
@@ -424,6 +428,17 @@ class Prefixer
         $lines[] = $border;
 
         return $lines;
+    }
+
+    private static function formatSizeWithReduction(int $original, int $output): string
+    {
+        if ($original === 0) {
+            return self::formatBytes($output);
+        }
+
+        $reduction = (int) round((1 - $output / $original) * 100);
+
+        return self::formatBytes($output) . ' / ' . self::formatBytes($original) . ' (-' . $reduction . '%)';
     }
 
     private static function formatBytes(int $bytes): string
