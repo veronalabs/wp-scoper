@@ -33,7 +33,7 @@ class ClassmapReplacerTest extends TestCase
         $input = '$x = new MyGlobalClass();';
         $result = $replacer->replace($input);
 
-        $this->assertStringContainsString('new WPS_MyGlobalClass()', $result);
+        $this->assertStringContainsString('new \WPS_MyGlobalClass()', $result);
     }
 
     public function testPrefixesInstanceof(): void
@@ -42,7 +42,7 @@ class ClassmapReplacerTest extends TestCase
         $input = 'if ($x instanceof MyGlobalClass)';
         $result = $replacer->replace($input);
 
-        $this->assertStringContainsString('instanceof WPS_MyGlobalClass)', $result);
+        $this->assertStringContainsString('instanceof \WPS_MyGlobalClass)', $result);
     }
 
     public function testPrefixesStaticCall(): void
@@ -51,7 +51,7 @@ class ClassmapReplacerTest extends TestCase
         $input = 'MyGlobalClass::method();';
         $result = $replacer->replace($input);
 
-        $this->assertStringContainsString('WPS_MyGlobalClass::method()', $result);
+        $this->assertStringContainsString('\WPS_MyGlobalClass::method()', $result);
     }
 
     public function testPrefixesExtends(): void
@@ -60,7 +60,7 @@ class ClassmapReplacerTest extends TestCase
         $input = 'class Child extends BaseClass {';
         $result = $replacer->replace($input);
 
-        $this->assertStringContainsString('extends WPS_BaseClass {', $result);
+        $this->assertStringContainsString('extends \WPS_BaseClass {', $result);
     }
 
     public function testPrefixesTypehint(): void
@@ -69,7 +69,7 @@ class ClassmapReplacerTest extends TestCase
         $input = 'function foo(MyGlobalClass $obj)';
         $result = $replacer->replace($input);
 
-        $this->assertStringContainsString('(WPS_MyGlobalClass $obj)', $result);
+        $this->assertStringContainsString('(\WPS_MyGlobalClass $obj)', $result);
     }
 
     public function testPrefixesStringReference(): void

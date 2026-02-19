@@ -80,45 +80,49 @@ class ClassmapReplacer implements ReplacerInterface
             $contents
         );
 
+        // For usage patterns, use \PrefixedClass (fully qualified) so it resolves
+        // correctly inside namespaced files. Declarations and strings don't need \.
+        $fqPrefixed = '\\' . $prefixed;
+
         // extends/implements: extends ClassName, implements ClassName
         $contents = preg_replace(
-            '/((?:extends|implements)\s+(?:[A-Za-z0-9_]+\s*,\s*)*)(?!' . $quotedPrefix . ')(' . $quotedClass . ')(?=\s|,|{|$)/m',
-            '$1' . $prefixed,
+            '/((?:extends|implements)\s+(?:[A-Za-z0-9_\\\\]+\s*,\s*)*)(?!\\\\?' . $quotedPrefix . ')(' . $quotedClass . ')(?=\s|,|{|$)/m',
+            '$1' . $fqPrefixed,
             $contents
         );
 
         // new ClassName
         $contents = preg_replace(
-            '/(new\s+)(?!' . $quotedPrefix . ')(' . $quotedClass . ')(?=\s*\(|\s*;|\s*$)/m',
-            '$1' . $prefixed,
+            '/(new\s+)(?!\\\\?' . $quotedPrefix . ')(' . $quotedClass . ')(?=\s*\(|\s*;|\s*$)/m',
+            '$1' . $fqPrefixed,
             $contents
         );
 
         // instanceof ClassName
         $contents = preg_replace(
-            '/(instanceof\s+)(?!' . $quotedPrefix . ')(' . $quotedClass . ')(?=\s|;|\))/m',
-            '$1' . $prefixed,
+            '/(instanceof\s+)(?!\\\\?' . $quotedPrefix . ')(' . $quotedClass . ')(?=\s|;|\))/m',
+            '$1' . $fqPrefixed,
             $contents
         );
 
         // ClassName::  (static calls)
         $contents = preg_replace(
             '/(?<![A-Za-z0-9_$\\\\>])(?!' . $quotedPrefix . ')(' . $quotedClass . ')(::)/',
-            $prefixed . '$2',
+            $fqPrefixed . '$2',
             $contents
         );
 
         // Type hints: function foo(ClassName $x)
         $contents = preg_replace(
-            '/([\(,]\s*(?:\?\s*)?)(?!' . $quotedPrefix . ')(' . $quotedClass . ')(\s+\$)/',
-            '$1' . $prefixed . '$3',
+            '/([\(,]\s*(?:\?\s*)?)(?!\\\\?' . $quotedPrefix . ')(' . $quotedClass . ')(\s+\$)/',
+            '$1' . $fqPrefixed . '$3',
             $contents
         );
 
         // Return types: ): ClassName
         $contents = preg_replace(
-            '/(:\s*(?:\?\s*)?)(?!' . $quotedPrefix . ')(' . $quotedClass . ')(?=\s*[{;])/',
-            '$1' . $prefixed,
+            '/(:\s*(?:\?\s*)?)(?!\\\\?' . $quotedPrefix . ')(' . $quotedClass . ')(?=\s*[{;])/',
+            '$1' . $fqPrefixed,
             $contents
         );
 
