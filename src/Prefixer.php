@@ -45,6 +45,8 @@ class Prefixer
             'packages' => 0,
             'php_files' => 0,
             'template_files' => 0,
+            'excluded_files' => 0,
+            'total_size' => 0,
             'namespaces' => 0,
             'global_classes' => 0,
             'constants' => 0,
@@ -107,12 +109,16 @@ class Prefixer
         $allPhpFiles = [];
         $allTemplateFiles = [];
         $allFilesAutoload = [];
+        $totalExcluded = 0;
+        $totalSize = 0;
 
         foreach ($packages as $package) {
             $this->log("Copying {$package->getName()}...");
             $result = $copier->copyPackage($package, $targetDir);
             $allPhpFiles = array_merge($allPhpFiles, $result['php_files']);
             $allTemplateFiles = array_merge($allTemplateFiles, $result['template_files']);
+            $totalExcluded += $result['excluded_files'];
+            $totalSize += $result['total_size'];
 
             // Collect files autoload entries
             foreach ($package->getAutoloadFiles() as $file) {
@@ -122,6 +128,8 @@ class Prefixer
 
         $this->stats['php_files'] = count($allPhpFiles);
         $this->stats['template_files'] = count($allTemplateFiles);
+        $this->stats['excluded_files'] = $totalExcluded;
+        $this->stats['total_size'] = $totalSize;
 
         $this->log(sprintf(
             'Copied %d PHP file(s), %d template file(s) (skipped for prefixing)',
@@ -374,10 +382,12 @@ class Prefixer
         $rows = [
             ['Packages', (string) ($stats['packages'] ?? 0)],
             ['PHP Files Prefixed', (string) ($stats['php_files'] ?? 0)],
+            ['Files Excluded', (string) ($stats['excluded_files'] ?? 0)],
             ['Namespaces Prefixed', (string) ($stats['namespaces'] ?? 0)],
             ['Global Classes', (string) ($stats['global_classes'] ?? 0)],
             ['Constants', (string) ($stats['constants'] ?? 0)],
             ['Call Sites Updated', (string) ($stats['call_sites_updated'] ?? 0)],
+            ['Output Size', self::formatBytes((int) ($stats['total_size'] ?? 0))],
             ['Target Directory', $stats['target_directory'] ?? '-'],
         ];
 
@@ -414,6 +424,24 @@ class Prefixer
         $lines[] = $border;
 
         return $lines;
+    }
+
+    private static function formatBytes(int $bytes): string
+    {
+        if ($bytes === 0) {
+            return '0 B';
+        }
+
+        $units = ['B', 'KB', 'MB', 'GB'];
+        $i = 0;
+        $size = (float) $bytes;
+
+        while ($size >= 1024 && $i < count($units) - 1) {
+            $size /= 1024;
+            $i++;
+        }
+
+        return round($size, 1) . ' ' . $units[$i];
     }
 
     private function log(string $message): void

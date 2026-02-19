@@ -31,7 +31,7 @@ class FileCopier
     /**
      * Copy a package to the target directory.
      *
-     * @return array{php_files: string[], template_files: string[]} Lists of copied files
+     * @return array{php_files: string[], template_files: string[], excluded_files: int, total_size: int} Lists of copied files and stats
      */
     public function copyPackage(Package $package, string $targetDirectory): array
     {
@@ -39,11 +39,13 @@ class FileCopier
         $packageTarget = $targetDirectory . '/' . $package->getName();
 
         if (!is_dir($sourcePath)) {
-            return ['php_files' => [], 'template_files' => []];
+            return ['php_files' => [], 'template_files' => [], 'excluded_files' => 0, 'total_size' => 0];
         }
 
         $phpFiles = [];
         $templateFiles = [];
+        $excludedFiles = 0;
+        $totalSize = 0;
 
         $finder = new Finder();
         $finder->files()->in($sourcePath)->ignoreDotFiles(true)->ignoreVCS(true);
@@ -52,12 +54,14 @@ class FileCopier
             $relativePath = $file->getRelativePathname();
 
             if ($this->shouldExclude($relativePath)) {
+                $excludedFiles++;
                 continue;
             }
 
             $targetPath = $packageTarget . '/' . $relativePath;
             $this->filesystem->mkdir(dirname($targetPath));
             $this->filesystem->copy($file->getRealPath(), $targetPath, true);
+            $totalSize += $file->getSize();
 
             if ($file->getExtension() === 'php') {
                 if ($this->isTemplateFile($file->getRealPath(), $relativePath)) {
@@ -68,7 +72,7 @@ class FileCopier
             }
         }
 
-        return ['php_files' => $phpFiles, 'template_files' => $templateFiles];
+        return ['php_files' => $phpFiles, 'template_files' => $templateFiles, 'excluded_files' => $excludedFiles, 'total_size' => $totalSize];
     }
 
     /**

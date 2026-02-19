@@ -59,6 +59,38 @@ Add configuration to your `composer.json`:
 
 Run `composer install` or `composer wp-scope`. That's it.
 
+## Output
+
+After running, WP Scoper displays a summary of what was done:
+
+```
++------------------------------------------------+
+| WP Scoper - Your dependencies, your namespace! |
++---------------------+--------------------------+
+| Packages            | 7                        |
+| PHP Files Prefixed  | 90                       |
+| Files Excluded      | 60                       |
+| Namespaces Prefixed | 6                        |
+| Global Classes      | 3                        |
+| Constants           | 0                        |
+| Call Sites Updated  | 0                        |
+| Output Size         | 2.3 MB                   |
+| Target Directory    | src/Dependencies         |
++------------------------------------------------+
+```
+
+| Stat | Description |
+|---|---|
+| **Packages** | Number of vendor packages processed (including transitive dependencies) |
+| **PHP Files Prefixed** | PHP files copied and namespace-prefixed |
+| **Files Excluded** | Files skipped by built-in and custom exclude patterns (tests, docs, configs) |
+| **Namespaces Prefixed** | Unique vendor namespaces that were rewritten |
+| **Global Classes** | Non-namespaced classes that were prefixed (e.g. `Spyc` -> `WP_Statistics_Spyc`) |
+| **Constants** | `define()` constants that were prefixed |
+| **Call Sites Updated** | Files in your `src/` whose `use` statements were auto-updated |
+| **Output Size** | Total size of the prefixed output directory |
+| **Target Directory** | Where prefixed files were written |
+
 ## How It Works
 
 1. Reads your `extra.wp-scoper` config from `composer.json`
@@ -78,7 +110,7 @@ Run `composer install` or `composer wp-scope`. That's it.
 | `class_prefix` | No | Auto-derived | Prefix for global (non-namespaced) classes |
 | `constant_prefix` | No | Auto-derived | Prefix for `define()` constants |
 | `exclude_packages` | No | `[]` | Transitive deps to skip |
-| `exclude_patterns` | No | `["/\\.md$/"]` | Regex patterns for files to skip entirely |
+| `exclude_patterns` | No | `[]` | Additional regex patterns for files to skip (merged with built-in patterns) |
 | `exclude_directories` | No | `["views", "templates", "resources"]` | Directories with template files (copied but not prefixed) |
 | `delete_vendor_packages` | No | `false` | Remove originals from `vendor/` after copy |
 | `update_call_sites` | No | `true` | Automatically update `use` statements in your `src/` files (see below) |
