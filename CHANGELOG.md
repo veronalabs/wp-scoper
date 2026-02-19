@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.2.0 - 2026-02-19
+
+### Added
+- `update_call_sites` now accepts an array of directories (e.g., `["src", "includes"]`) in addition to `true`/`false`
+- Built-in exclude patterns for `.rst`, `.legacy.php`, `.neon`, `.xsd`, `renovate.json`, `psalm-baseline.xml`, `sonar-project.properties`, `phpdox.xml`, and `docs/` directories
+
+### Changed
+- `Dockerfile` exclude pattern now matches variants like `Dockerfile-dev` (was `Dockerfile$`)
+
+### Fixed
+- `composer wp-scope` command now produces identical output to the automatic post-install/post-update hook (was missing host PSR-4 autoload mappings)
+- Classmap generator now handles PHP 8.2 `readonly` class modifier (e.g., `final readonly class`)
+- `update_call_sites` with `"."` (root directory) no longer rewrites files inside `vendor/`
+- Excluded files (e.g., `.legacy.php`) are no longer referenced in the generated `autoload.php` `require_once` list
+- PHP class files in directories named `templates/`, `views/`, or `resources/` are no longer misidentified as template files and skipped during prefixing
+
+---
+
+## 1.1.1 - 2026-02-19
+
+### Fixed
+- `composer wp-scope` command was not passing host project PSR-4 autoload config to the generated autoloader
+
+### Docs
+- Updated README output table to show size reduction format
+
+---
+
 ## 1.1.0 - 2026-02-19
 
 ### Added

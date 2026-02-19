@@ -118,14 +118,6 @@ class FileCopier
      */
     public function isTemplateFile(string $filePath, string $relativePath): bool
     {
-        // Check if the file is in a template directory
-        $parts = explode('/', str_replace('\\', '/', $relativePath));
-        foreach ($parts as $part) {
-            if (in_array(strtolower($part), array_map('strtolower', $this->templateDirectories), true)) {
-                return true;
-            }
-        }
-
         $content = file_get_contents($filePath);
         if ($content === false || $content === '') {
             return false;
@@ -134,12 +126,20 @@ class FileCopier
         $trimmed = ltrim($content);
 
         // Files starting with <?php that have a namespace, class, interface, trait,
-        // or enum declaration are never templates. This prevents false positives
-        // from HTML-like tags inside PHPDoc comments and strings.
+        // or enum declaration are never templates, even if they live in a template
+        // directory (e.g. Rabbit\Templates\Engine is a PHP class, not a view file).
         if (str_starts_with($trimmed, '<?php') &&
-            preg_match('/^\s*(?:namespace|(?:abstract\s+|final\s+)?class|interface|trait|enum)\s+[A-Za-z]/m', $content)
+            preg_match('/^\s*(?:namespace|(?:(?:abstract|final|readonly)\s+)*(?:class|interface|trait|enum))\s+[A-Za-z]/m', $content)
         ) {
             return false;
+        }
+
+        // Check if the file is in a template directory
+        $parts = explode('/', str_replace('\\', '/', $relativePath));
+        foreach ($parts as $part) {
+            if (in_array(strtolower($part), array_map('strtolower', $this->templateDirectories), true)) {
+                return true;
+            }
         }
 
         // If file doesn't start with <?php, it's likely a template

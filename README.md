@@ -113,7 +113,7 @@ After running, WP Scoper displays a summary of what was done:
 | `exclude_patterns` | No | `[]` | Additional regex patterns for files to skip (merged with built-in patterns) |
 | `exclude_directories` | No | `["views", "templates", "resources"]` | Directories with template files (copied but not prefixed) |
 | `delete_vendor_packages` | No | `false` | Remove originals from `vendor/` after copy |
-| `update_call_sites` | No | `true` | Automatically update `use` statements in your `src/` files (see below) |
+| `update_call_sites` | No | `true` | Update `use` statements in host project files. `true` scans `src/`, or pass an array of directories (see below) |
 | `dev_packages` | No | `null` | Config for prefixing `require-dev` packages separately |
 
 ### Full Configuration Example
@@ -196,7 +196,15 @@ vendor/bin/wp-scoper --dry-run
 
 When dependencies get prefixed, your own source code still references the original namespaces. Normally you'd have to manually find and replace every `use` statement, every `new` call, and every type hint across your entire project. With `update_call_sites` enabled (the default), wp-scoper does this for you automatically.
 
-It scans all PHP files in your `src/` directory and rewrites references to match the prefixed namespaces. You write your code using the original package namespaces, and wp-scoper handles the rest.
+By default it scans all PHP files in your `src/` directory. You can also pass an array of directories to scan additional locations:
+
+```json
+{
+    "update_call_sites": ["src", "includes"]
+}
+```
+
+You write your code using the original package namespaces, and wp-scoper handles the rest.
 
 ### Example: Before and After
 

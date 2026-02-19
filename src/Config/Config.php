@@ -16,7 +16,7 @@ class Config
         '/UPGRADING/i',
         '/composer\\.json$/',
         '/composer\\.lock$/',
-        '/autoload\\.php$/',
+        '/vendor\\/autoload\\.php$/',
         '/package\\.xml$/i',
         '/phpcs\\.xml/i',
         '/phpstan\\.neon/i',
@@ -35,9 +35,18 @@ class Config
         '/Makefile$/',
         '/phpunit\\.xml(\\.dist)?$/i',
         '/\\.travis\\.yml$/',
-        '/Dockerfile$/i',
+        '/Dockerfile/i',
         '/docker-compose/i',
         '/COPYING$/i',
+        '/\\.rst$/i',
+        '/sonar-project\\.properties$/i',
+        '/phpdox\\.xml$/i',
+        '/\\bdocs?\\//i',
+        '/renovate\\.json$/i',
+        '/psalm-baseline\\.xml$/i',
+        '/\\.neon$/i',
+        '/\\.xsd$/i',
+        '/\\.legacy\\.php$/i',
     ];
 
     /** @var string */
@@ -67,8 +76,8 @@ class Config
     /** @var bool */
     private $deleteVendorPackages;
 
-    /** @var bool */
-    private $updateCallSites;
+    /** @var array<string> Directories to scan for call site updates, empty = disabled */
+    private $callSiteDirectories;
 
     /** @var DevConfig|null */
     private $devPackages;
@@ -100,7 +109,14 @@ class Config
         $this->excludePatterns = $config['exclude_patterns'] ?? [];
         $this->excludeDirectories = $config['exclude_directories'] ?? ['views', 'templates', 'resources'];
         $this->deleteVendorPackages = $config['delete_vendor_packages'] ?? false;
-        $this->updateCallSites = $config['update_call_sites'] ?? true;
+        $updateCallSites = $config['update_call_sites'] ?? true;
+        if (is_array($updateCallSites)) {
+            $this->callSiteDirectories = $updateCallSites;
+        } elseif ($updateCallSites) {
+            $this->callSiteDirectories = ['src'];
+        } else {
+            $this->callSiteDirectories = [];
+        }
         $this->devPackages = isset($config['dev_packages'])
             ? DevConfig::fromArray($config['dev_packages'])
             : null;
@@ -218,7 +234,13 @@ class Config
 
     public function shouldUpdateCallSites(): bool
     {
-        return $this->updateCallSites;
+        return !empty($this->callSiteDirectories);
+    }
+
+    /** @return array<string> */
+    public function getCallSiteDirectories(): array
+    {
+        return $this->callSiteDirectories;
     }
 
     public function getDevPackages(): ?DevConfig

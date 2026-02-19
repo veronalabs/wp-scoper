@@ -61,15 +61,23 @@ class FileCopierTest extends TestCase
     {
         $copier = new FileCopier([], ['views', 'templates']);
 
-        $this->assertTrue($copier->isTemplateFile(
-            '/any/path/file.php',
-            'views/template.php'
-        ));
+        // A simple PHP file (no namespace/class) in a template directory is a template
+        $templateFile = $this->tempDir . '/template.php';
+        file_put_contents($templateFile, '<div><?php echo $name; ?></div>');
 
-        $this->assertTrue($copier->isTemplateFile(
-            '/any/path/file.php',
-            'some/views/page.php'
-        ));
+        $this->assertTrue($copier->isTemplateFile($templateFile, 'views/template.php'));
+        $this->assertTrue($copier->isTemplateFile($templateFile, 'some/views/page.php'));
+    }
+
+    public function testPhpClassInTemplateDirectoryNotDetectedAsTemplate(): void
+    {
+        $copier = new FileCopier([], ['views', 'templates']);
+
+        // A PHP class file in a directory named "templates" is NOT a template
+        $classFile = $this->tempDir . '/ServiceProvider.php';
+        file_put_contents($classFile, "<?php\n\nnamespace Rabbit\\Templates;\n\nclass ServiceProvider {}\n");
+
+        $this->assertFalse($copier->isTemplateFile($classFile, 'templates/ServiceProvider.php'));
     }
 
     public function testDetectsTemplateByContent(): void

@@ -123,9 +123,12 @@ class Prefixer
             $originalSize += $result['original_size'];
             $totalSize += $result['total_size'];
 
-            // Collect files autoload entries
+            // Collect files autoload entries (only for files that were actually copied)
             foreach ($package->getAutoloadFiles() as $file) {
-                $allFilesAutoload[] = $package->getName() . '/' . $file;
+                $filePath = $package->getName() . '/' . $file;
+                if (file_exists($targetDir . '/' . $filePath)) {
+                    $allFilesAutoload[] = $filePath;
+                }
             }
         }
 
@@ -240,20 +243,33 @@ class Prefixer
     ): void {
         $this->log('Updating call sites in host project...');
 
-        $srcDir = $this->config->getWorkingDirectory() . '/src';
-        if (!is_dir($srcDir)) {
-            $this->log('No src/ directory found, skipping call site updates.');
+        $workingDir = $this->config->getWorkingDirectory();
+        $dirs = [];
+        foreach ($this->config->getCallSiteDirectories() as $dir) {
+            $absDir = $workingDir . '/' . $dir;
+            if (is_dir($absDir)) {
+                $dirs[] = $absDir;
+            }
+        }
+
+        if (empty($dirs)) {
+            $this->log('No call site directories found, skipping call site updates.');
             return;
         }
 
         $finder = new Finder();
-        $finder->files()->name('*.php')->in($srcDir);
+        $finder->files()->name('*.php')->in($dirs);
 
-        // Exclude the target directory if it's inside src/
+        // Always exclude vendor directory from call site updates
+        $finder->exclude('vendor');
+
+        // Exclude the target directory if it's inside any scanned directory
         $targetDir = $this->config->getAbsoluteTargetDirectory();
-        if (strpos($targetDir, $srcDir) === 0) {
-            $relativeTarget = substr($targetDir, strlen($srcDir) + 1);
-            $finder->exclude($relativeTarget);
+        foreach ($dirs as $dir) {
+            if (strpos($targetDir, $dir) === 0) {
+                $relativeTarget = substr($targetDir, strlen($dir) + 1);
+                $finder->exclude($relativeTarget);
+            }
         }
 
         $count = 0;

@@ -55,7 +55,7 @@ class AutoloadGenerator
 
             // Extract class/interface/trait/enum declarations
             if (preg_match_all(
-                '/^\s*(?:abstract\s+|final\s+)?(?:class|interface|trait|enum)\s+([A-Za-z_][A-Za-z0-9_]*)/m',
+                '/^\s*(?:(?:abstract|final|readonly)\s+)*(?:class|interface|trait|enum)\s+([A-Za-z_][A-Za-z0-9_]*)/m',
                 $contents,
                 $matches
             )) {
