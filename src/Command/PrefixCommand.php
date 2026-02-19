@@ -45,7 +45,10 @@ class PrefixCommand extends BaseCommand
         }
 
         try {
-            $config = Config::fromArray($extra['wp-scoper'], $workingDir);
+            $autoload = $composer->getPackage()->getAutoload();
+            $hostPsr4 = $autoload['psr-4'] ?? [];
+
+            $config = Config::fromArray($extra['wp-scoper'], $workingDir, $hostPsr4);
 
             $prefixer = new Prefixer($config, function (string $message) use ($output) {
                 $output->writeln("  <comment>{$message}</comment>");

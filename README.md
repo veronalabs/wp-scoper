@@ -74,7 +74,7 @@ After running, WP Scoper displays a summary of what was done:
 | Global Classes      | 3                        |
 | Constants           | 0                        |
 | Call Sites Updated  | 0                        |
-| Output Size         | 2.3 MB                   |
+| Output Size         | 2.3 MB / 2.7 MB (-14%)   |
 | Target Directory    | src/Dependencies         |
 +------------------------------------------------+
 ```
@@ -88,7 +88,7 @@ After running, WP Scoper displays a summary of what was done:
 | **Global Classes** | Non-namespaced classes that were prefixed (e.g. `Spyc` -> `WP_Statistics_Spyc`) |
 | **Constants** | `define()` constants that were prefixed |
 | **Call Sites Updated** | Files in your `src/` whose `use` statements were auto-updated |
-| **Output Size** | Total size of the prefixed output directory |
+| **Output Size** | Output size vs original size with reduction percentage |
 | **Target Directory** | Where prefixed files were written |
 
 ## How It Works
