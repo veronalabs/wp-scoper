@@ -60,7 +60,11 @@ class StandalonePrefixCommand extends Command
 
             $prefixer->run();
 
-            $output->writeln('<info>wp-scoper: Prefixing complete!</info>');
+            $output->writeln('');
+            foreach (Prefixer::formatSummaryTable($prefixer->getStats()) as $line) {
+                $output->writeln("  <info>{$line}</info>");
+            }
+            $output->writeln('');
             return 0;
         } catch (\Exception $e) {
             $output->writeln(sprintf('<error>Error: %s</error>', $e->getMessage()));

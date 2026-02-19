@@ -22,15 +22,35 @@ class Prefixer
     /** @var callable|null Output callback for logging */
     private $output;
 
+    /** @var array<string, mixed> Stats collected during prefixing */
+    private $stats = [];
+
     public function __construct(Config $config, ?callable $output = null)
     {
         $this->config = $config;
         $this->output = $output;
     }
 
+    /** @return array<string, mixed> */
+    public function getStats(): array
+    {
+        return $this->stats;
+    }
+
     public function run(): void
     {
         $this->log('Starting wp-scoper...');
+
+        $this->stats = [
+            'packages' => 0,
+            'php_files' => 0,
+            'template_files' => 0,
+            'namespaces' => 0,
+            'global_classes' => 0,
+            'constants' => 0,
+            'call_sites_updated' => 0,
+            'target_directory' => $this->config->getTargetDirectory(),
+        ];
 
         if (empty($this->config->getPackages())) {
             $this->log('No packages configured.');
@@ -67,6 +87,8 @@ class Prefixer
             return;
         }
 
+        $this->stats['packages'] = count($packages);
+
         $this->log(sprintf('Found %d package(s): %s', count($packages), implode(', ', array_map(
             function (Package $p): string { return $p->getName(); },
             $packages
@@ -98,6 +120,9 @@ class Prefixer
             }
         }
 
+        $this->stats['php_files'] = count($allPhpFiles);
+        $this->stats['template_files'] = count($allTemplateFiles);
+
         $this->log(sprintf(
             'Copied %d PHP file(s), %d template file(s) (skipped for prefixing)',
             count($allPhpFiles),
@@ -115,11 +140,16 @@ class Prefixer
             }
         }
 
+        $this->stats['namespaces'] = count($namespaces);
+
         $this->log(sprintf('Found %d namespace(s) to prefix', count($namespaces)));
 
         // Step 4: Discover global classes and constants
         $globalClasses = ClassmapReplacer::findGlobalClasses($allPhpFiles);
         $constants = ConstantReplacer::findConstants($allPhpFiles);
+
+        $this->stats['global_classes'] = count($globalClasses);
+        $this->stats['constants'] = count($constants);
 
         $this->log(sprintf(
             'Found %d global class(es) and %d constant(s)',
@@ -239,6 +269,8 @@ class Prefixer
             }
         }
 
+        $this->stats['call_sites_updated'] = $count;
+
         $this->log(sprintf('Updated %d source file(s)', $count));
     }
 
@@ -330,6 +362,58 @@ class Prefixer
         $generator->generate($targetDir, $devFilesAutoload);
 
         $this->log(sprintf('Processed %d dev PHP file(s)', count($devPhpFiles)));
+    }
+
+    /**
+     * Format stats as a summary table.
+     *
+     * @return array<string> Lines of the formatted table
+     */
+    public static function formatSummaryTable(array $stats): array
+    {
+        $rows = [
+            ['Packages', (string) ($stats['packages'] ?? 0)],
+            ['PHP Files Prefixed', (string) ($stats['php_files'] ?? 0)],
+            ['Namespaces Prefixed', (string) ($stats['namespaces'] ?? 0)],
+            ['Global Classes', (string) ($stats['global_classes'] ?? 0)],
+            ['Constants', (string) ($stats['constants'] ?? 0)],
+            ['Call Sites Updated', (string) ($stats['call_sites_updated'] ?? 0)],
+            ['Target Directory', $stats['target_directory'] ?? '-'],
+        ];
+
+        $slogan = 'WP Scoper - Your dependencies, your namespace!';
+        $sloganLen = strlen($slogan);
+
+        // Calculate column widths
+        $labelWidth = 0;
+        $valueWidth = 0;
+        foreach ($rows as $row) {
+            $labelWidth = max($labelWidth, strlen($row[0]));
+            $valueWidth = max($valueWidth, strlen($row[1]));
+        }
+
+        // Ensure total width accommodates the slogan
+        $innerWidth = $labelWidth + 3 + $valueWidth; // 3 = " | "
+        if ($innerWidth < $sloganLen) {
+            $valueWidth += $sloganLen - $innerWidth;
+            $innerWidth = $sloganLen;
+        }
+
+        $border = '+' . str_repeat('-', $innerWidth + 2) . '+';
+        $divider = '+' . str_repeat('-', $labelWidth + 2) . '+' . str_repeat('-', $innerWidth - $labelWidth - 1) . '+';
+
+        $lines = [];
+        $lines[] = $border;
+        $lines[] = '| ' . str_pad($slogan, $innerWidth) . ' |';
+        $lines[] = $divider;
+
+        foreach ($rows as $row) {
+            $lines[] = '| ' . str_pad($row[0], $labelWidth) . ' | ' . str_pad($row[1], $innerWidth - $labelWidth - 3) . ' |';
+        }
+
+        $lines[] = $border;
+
+        return $lines;
     }
 
     private function log(string $message): void

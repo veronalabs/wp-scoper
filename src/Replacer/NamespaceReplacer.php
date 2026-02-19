@@ -137,6 +137,21 @@ class NamespaceReplacer implements ReplacerInterface
             $contents
         );
 
+        // Fix double-prefixing: when a class name matches its namespace name
+        // (e.g. DeviceDetector\DeviceDetector), the class part can get prefixed again.
+        // Prefix\NS\Prefix\NS → Prefix\NS (keeping whatever follows)
+        $doublePrefix = $prefixed . '\\' . $this->prefix . '\\';
+        if (strpos($contents, $doublePrefix) !== false) {
+            $contents = str_replace($doublePrefix, $prefixed . '\\', $contents);
+        }
+
+        // Same fix for double-backslash string literals
+        $doublePrefixStr = str_replace('\\', '\\\\', $doublePrefix);
+        if (strpos($contents, $doublePrefixStr) !== false) {
+            $fixedStr = str_replace('\\', '\\\\', $prefixed . '\\');
+            $contents = str_replace($doublePrefixStr, $fixedStr, $contents);
+        }
+
         return $contents;
     }
 }

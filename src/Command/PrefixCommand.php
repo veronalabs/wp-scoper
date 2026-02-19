@@ -53,7 +53,11 @@ class PrefixCommand extends BaseCommand
 
             $prefixer->run();
 
-            $output->writeln('<info>wp-scoper: Prefixing complete!</info>');
+            $output->writeln('');
+            foreach (Prefixer::formatSummaryTable($prefixer->getStats()) as $line) {
+                $output->writeln("  <info>{$line}</info>");
+            }
+            $output->writeln('');
             return 0;
         } catch (\Exception $e) {
             $output->writeln("<error>Error: {$e->getMessage()}</error>");

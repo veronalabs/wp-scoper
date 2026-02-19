@@ -78,7 +78,11 @@ class Plugin implements PluginInterface, EventSubscriberInterface, Capable
 
             $prefixer->run();
 
-            $this->io->write('<info>wp-scoper:</info> Done!');
+            $this->io->write('');
+            foreach (Prefixer::formatSummaryTable($prefixer->getStats()) as $line) {
+                $this->io->write("  <info>{$line}</info>");
+            }
+            $this->io->write('');
         } catch (\Exception $e) {
             $this->io->writeError("<error>wp-scoper error: {$e->getMessage()}</error>");
         }

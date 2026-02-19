@@ -63,7 +63,10 @@ class ConfigTest extends TestCase
         $this->assertSame('WP_StatisticsDeps_', $config->getClassPrefix());
         $this->assertSame('WP_STATISTICS_DEPS_', $config->getConstantPrefix());
         $this->assertSame([], $config->getExcludePackages());
-        $this->assertSame(['/\\.md$/'], $config->getExcludePatterns());
+        // Built-in patterns are always included
+        $this->assertContains('/\\.md$/i', $config->getExcludePatterns());
+        $this->assertContains('/examples?\\//i', $config->getExcludePatterns());
+        $this->assertContains('/ext\\//i', $config->getExcludePatterns());
         $this->assertSame(['views', 'templates', 'resources'], $config->getExcludeDirectories());
         $this->assertFalse($config->shouldDeleteVendorPackages());
         $this->assertTrue($config->shouldUpdateCallSites());
@@ -89,7 +92,9 @@ class ConfigTest extends TestCase
         $this->assertSame('WP_Stats_', $config->getClassPrefix());
         $this->assertSame('WPS_', $config->getConstantPrefix());
         $this->assertSame(['psr/log'], $config->getExcludePackages());
-        $this->assertSame(['/tests/'], $config->getExcludePatterns());
+        // User patterns are merged with built-in defaults
+        $this->assertContains('/tests/', $config->getExcludePatterns());
+        $this->assertContains('/\\.md$/i', $config->getExcludePatterns());
         $this->assertSame(['views'], $config->getExcludeDirectories());
         $this->assertTrue($config->shouldDeleteVendorPackages());
         $this->assertFalse($config->shouldUpdateCallSites());

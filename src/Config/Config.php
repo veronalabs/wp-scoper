@@ -8,6 +8,29 @@ use InvalidArgumentException;
 
 class Config
 {
+    /** @var array<string> Built-in exclude patterns always applied */
+    private const BUILT_IN_EXCLUDE_PATTERNS = [
+        '/\\.md$/i',
+        '/LICENSE(\\.txt)?$/i',
+        '/CHANGELOG/i',
+        '/UPGRADING/i',
+        '/composer\\.json$/',
+        '/composer\\.lock$/',
+        '/autoload\\.php$/',
+        '/package\\.xml$/i',
+        '/phpcs\\.xml/i',
+        '/phpstan\\.neon/i',
+        '/psalm\\.xml/i',
+        '/\\.phpunit/i',
+        '/\\.editorconfig$/',
+        '/\\.gitignore$/',
+        '/\\.github\\//i',
+        '/\\.gitlab\\//i',
+        '/examples?\\//i',
+        '/ext\\//i',
+        '/php4\\//i',
+    ];
+
     /** @var string */
     private $namespacePrefix;
 
@@ -65,7 +88,7 @@ class Config
         $this->classPrefix = $config['class_prefix'] ?? self::deriveClassPrefix($this->namespacePrefix);
         $this->constantPrefix = $config['constant_prefix'] ?? self::deriveConstantPrefix($this->namespacePrefix);
         $this->excludePackages = $config['exclude_packages'] ?? [];
-        $this->excludePatterns = $config['exclude_patterns'] ?? ['/\\.md$/'];
+        $this->excludePatterns = $config['exclude_patterns'] ?? [];
         $this->excludeDirectories = $config['exclude_directories'] ?? ['views', 'templates', 'resources'];
         $this->deleteVendorPackages = $config['delete_vendor_packages'] ?? false;
         $this->updateCallSites = $config['update_call_sites'] ?? true;
@@ -170,7 +193,7 @@ class Config
     /** @return array<string> */
     public function getExcludePatterns(): array
     {
-        return $this->excludePatterns;
+        return array_unique(array_merge(self::BUILT_IN_EXCLUDE_PATTERNS, $this->excludePatterns));
     }
 
     /** @return array<string> */

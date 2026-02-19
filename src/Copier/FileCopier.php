@@ -127,6 +127,15 @@ class FileCopier
 
         $trimmed = ltrim($content);
 
+        // Files starting with <?php that have a namespace, class, interface, trait,
+        // or enum declaration are never templates. This prevents false positives
+        // from HTML-like tags inside PHPDoc comments and strings.
+        if (str_starts_with($trimmed, '<?php') &&
+            preg_match('/^\s*(?:namespace|(?:abstract\s+|final\s+)?class|interface|trait|enum)\s+[A-Za-z]/m', $content)
+        ) {
+            return false;
+        }
+
         // If file doesn't start with <?php, it's likely a template
         if (!str_starts_with($trimmed, '<?php')) {
             // Check if it contains HTML-like content

@@ -325,4 +325,57 @@ PHP;
 
         $this->assertStringContainsString('\\WP_Statistics\\Deps\\GeoIp2\\Model\\City', $result);
     }
+
+    // ========================================================================
+    // Double-prefixing prevention
+    // ========================================================================
+
+    public function testDoesNotDoublePrefixWhenClassNameMatchesNamespace(): void
+    {
+        // DeviceDetector\DeviceDetector - class name same as namespace
+        $replacer = new NamespaceReplacer('WP_Statistics\\Dependencies', ['DeviceDetector']);
+
+        $input = 'use DeviceDetector\\DeviceDetector;';
+        $result = $replacer->replace($input);
+
+        $this->assertStringContainsString('use WP_Statistics\\Dependencies\\DeviceDetector\\DeviceDetector;', $result);
+        $this->assertStringNotContainsString('WP_Statistics\\Dependencies\\DeviceDetector\\WP_Statistics\\Dependencies', $result);
+    }
+
+    public function testDoesNotDoublePrefixAlreadyPrefixedFqn(): void
+    {
+        // When host code already has prefixed references (e.g., from Mozart migration)
+        $replacer = new NamespaceReplacer('WP_Statistics\\Dependencies', ['DeviceDetector']);
+
+        $input = '$x = new \\WP_Statistics\\Dependencies\\DeviceDetector\\DeviceDetector($ua);';
+        $result = $replacer->replace($input);
+
+        $this->assertStringContainsString('\\WP_Statistics\\Dependencies\\DeviceDetector\\DeviceDetector($ua)', $result);
+        $this->assertStringNotContainsString('WP_Statistics\\Dependencies\\DeviceDetector\\WP_Statistics\\Dependencies', $result);
+    }
+
+    public function testDoesNotDoublePrefixMixedCallSites(): void
+    {
+        // File with both unprefixed and already-prefixed references
+        $replacer = new NamespaceReplacer('WP_Statistics\\Dependencies', ['DeviceDetector']);
+
+        $input = <<<'PHP'
+<?php
+use DeviceDetector\DeviceDetector;
+
+class Service {
+    public function create() {
+        return new \WP_Statistics\Dependencies\DeviceDetector\DeviceDetector('ua');
+    }
+}
+PHP;
+        $result = $replacer->replace($input);
+
+        // First use should be prefixed
+        $this->assertStringContainsString('use WP_Statistics\\Dependencies\\DeviceDetector\\DeviceDetector;', $result);
+        // Second should NOT be double-prefixed
+        $this->assertStringNotContainsString('DeviceDetector\\WP_Statistics\\Dependencies\\DeviceDetector', $result);
+        // Exactly one occurrence of the prefix in the FQN line
+        $this->assertSame(2, substr_count($result, 'WP_Statistics\\Dependencies\\DeviceDetector\\DeviceDetector'));
+    }
 }
