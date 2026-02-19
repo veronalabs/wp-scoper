@@ -77,7 +77,7 @@ class AutoloadGenerator
         foreach ($classmap as $class => $file) {
             $escapedClass = addcslashes($class, "'\\");
             $escapedFile = addcslashes($file, "'\\");
-            $lines[] = "    '{$escapedClass}' => __DIR__ . '/{$escapedFile}',\n";
+            $lines[] = "    '{$escapedClass}' => '{$escapedFile}',\n";
         }
 
         $lines[] = "];\n";
