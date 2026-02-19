@@ -29,6 +29,15 @@ class Config
         '/examples?\\//i',
         '/ext\\//i',
         '/php4\\//i',
+        '/tests?\\//i',
+        '/\\bbin\\//i',
+        '/dev-bin\\//i',
+        '/Makefile$/',
+        '/phpunit\\.xml(\\.dist)?$/i',
+        '/\\.travis\\.yml$/',
+        '/Dockerfile$/i',
+        '/docker-compose/i',
+        '/COPYING$/i',
     ];
 
     /** @var string */
