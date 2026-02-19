@@ -152,6 +152,20 @@ class NamespaceReplacer implements ReplacerInterface
             $contents = str_replace($doublePrefixStr, $fixedStr, $contents);
         }
 
+        // Fix cross-namespace double-prefixing: when a namespace name (e.g. "Carbon") also
+        // appears as the last segment of an already-prefixed path (e.g. "Prefix\Illuminate\
+        // Support\Carbon"), the FQN standalone pattern can incorrectly prefix it again,
+        // producing "Prefix\Illuminate\Support\Prefix\Carbon". Fix by removing the
+        // spurious mid-path prefix insertion.
+        $midPathDoubleSearch = '\\' . $prefixed;
+        if (strpos($contents, $midPathDoubleSearch) !== false) {
+            $contents = preg_replace(
+                '/([A-Za-z0-9_])' . preg_quote($midPathDoubleSearch, '/') . '(?=[^A-Za-z0-9_\\\\])/',
+                '$1\\' . addcslashes($namespace, '\\$'),
+                $contents
+            );
+        }
+
         return $contents;
     }
 }

@@ -354,6 +354,47 @@ PHP;
         $this->assertStringNotContainsString('WP_Statistics\\Dependencies\\DeviceDetector\\WP_Statistics\\Dependencies', $result);
     }
 
+    public function testDoesNotDoublePrefixWhenNamespaceIsLastSegmentOfAnotherPath(): void
+    {
+        // Carbon is a namespace to prefix, but also appears as Illuminate\Support\Carbon
+        // The scoper should NOT produce Illuminate\Support\Prefix\Carbon
+        $replacer = new NamespaceReplacer('WPSmsWooPro\\Vendor', ['Illuminate', 'Carbon']);
+
+        $input = <<<'PHP'
+<?php
+namespace WPSmsWooPro\Vendor\Illuminate\Database\Eloquent\Concerns;
+
+use WPSmsWooPro\Vendor\Carbon\CarbonImmutable;
+use WPSmsWooPro\Vendor\Illuminate\Support\Carbon;
+
+class HasAttributes
+{
+    protected function serializeDate($date)
+    {
+        return Carbon::instance($date)->toJSON();
+    }
+}
+PHP;
+
+        $result = $replacer->replace($input);
+
+        // Carbon in use Illuminate\Support\Carbon should NOT be double-prefixed
+        $this->assertStringContainsString('use WPSmsWooPro\\Vendor\\Illuminate\\Support\\Carbon;', $result);
+        $this->assertStringNotContainsString('Support\\WPSmsWooPro\\Vendor\\Carbon', $result);
+    }
+
+    public function testDoesNotDoublePrefixWithAlias(): void
+    {
+        // Same issue but with "as" alias: use Illuminate\Support\Carbon as IlluminateCarbon;
+        $replacer = new NamespaceReplacer('WPSmsWooPro\\Vendor', ['Illuminate', 'Carbon']);
+
+        $input = 'use WPSmsWooPro\\Vendor\\Illuminate\\Support\\Carbon as IlluminateCarbon;';
+        $result = $replacer->replace($input);
+
+        $this->assertStringContainsString('use WPSmsWooPro\\Vendor\\Illuminate\\Support\\Carbon as IlluminateCarbon;', $result);
+        $this->assertStringNotContainsString('Support\\WPSmsWooPro\\Vendor\\Carbon', $result);
+    }
+
     public function testDoesNotDoublePrefixMixedCallSites(): void
     {
         // File with both unprefixed and already-prefixed references
