@@ -47,6 +47,10 @@ class Config
         '/\\.neon$/i',
         '/\\.xsd$/i',
         '/\\.legacy\\.php$/i',
+        '/\\.pem$/i',
+        '/\\.crt$/i',
+        '/\\.cer$/i',
+        '/\\.key$/i',
     ];
 
     /** @var string */

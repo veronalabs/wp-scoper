@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.3 - 2026-02-21
+
+### Added
+- Built-in exclude patterns for certificate/key files (`.pem`, `.crt`, `.cer`, `.key`)
+
+---
+
 ## 1.2.2 - 2026-02-20
 
 ### Fixed
