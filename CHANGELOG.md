@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.4 - 2026-03-05
+
+### Added
+- ABSPATH guard (`if (!defined('ABSPATH')) exit;`) to generated `autoload.php` and `autoload-classmap.php` for WordPress.org plugin compliance
+
+---
+
 ## 1.2.3 - 2026-02-21
 
 ### Added
