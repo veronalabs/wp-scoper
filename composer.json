@@ -2,6 +2,7 @@
     "name": "veronalabs/wp-scoper",
     "description": "A Composer plugin that prefixes namespaces in WordPress plugin dependencies to prevent conflicts",
     "type": "composer-plugin",
+    "version": "1.2.4",
     "license": "MIT",
     "authors": [
         {
