@@ -58,10 +58,13 @@ class NamespaceReplacer implements ReplacerInterface
             $contents
         );
 
-        // Also handle "use Namespace;" without sub-namespace
+        // Also handle "use Namespace;" and "use Namespace as Alias;" without sub-namespace.
+        // The optional "as Alias" group must be preserved verbatim in the output, otherwise
+        // call sites that reference the alias (e.g. polyfill bootstraps doing
+        // `use Symfony\Polyfill\Mbstring as p;` and then `p\Mbstring::method()`) break.
         $contents = preg_replace(
-            '/^(\s*use\s+(?:function\s+|const\s+)?)(?!' . $quotedPrefix . '\\\\)(' . $quotedNs . ')\s*;/m',
-            '$1' . addcslashes($prefixed, '\\$') . ';',
+            '/^(\s*use\s+(?:function\s+|const\s+)?)(?!' . $quotedPrefix . '\\\\)(' . $quotedNs . ')(\s+as\s+[A-Za-z_][A-Za-z0-9_]*)?\s*;/m',
+            '$1' . addcslashes($prefixed, '\\$') . '$3;',
             $contents
         );
 

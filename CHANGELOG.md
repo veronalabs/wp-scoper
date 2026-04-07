@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.5 - 2026-04-07
+
+### Fixed
+- **`use Namespace as Alias;` form not prefixed**: When a `use` statement imported a namespace itself (no trailing class) with an alias — e.g. `use Symfony\Polyfill\Mbstring as p;` in Symfony polyfill bootstrap files — `NamespaceReplacer` left it unchanged. After scoping, the aliased reference resolved to a non-existent class and produced fatal `Class not found` errors at runtime on hosts where the polyfill code path actually executed (e.g. servers without the native `mbstring` extension)
+
+---
+
 ## 1.2.4 - 2026-03-05
 
 ### Added

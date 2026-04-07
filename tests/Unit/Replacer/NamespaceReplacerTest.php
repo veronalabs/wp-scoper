@@ -94,6 +94,29 @@ class NamespaceReplacerTest extends TestCase
         $this->assertStringNotContainsString('WP_Statistics\\Deps\\WP_Statistics\\Deps', $result);
     }
 
+    public function testPrefixesUseNamespaceWithAlias(): void
+    {
+        // Regression: Symfony polyfill bootstraps import the namespace itself with an alias
+        // (e.g. `use Symfony\Polyfill\Mbstring as p;`) and then call `p\Mbstring::method()`.
+        // The alias-only form was previously not matched by any pattern, leaving the use
+        // statement unprefixed and causing fatal "class not found" errors at runtime on
+        // hosts where the polyfill bootstrap actually executes.
+        $replacer = new NamespaceReplacer('WPSmsBookingIntegrations\\Vendor', ['Symfony\\Polyfill\\Mbstring']);
+        $input = 'use Symfony\\Polyfill\\Mbstring as p;';
+        $result = $replacer->replace($input);
+
+        $this->assertSame('use WPSmsBookingIntegrations\\Vendor\\Symfony\\Polyfill\\Mbstring as p;', $result);
+    }
+
+    public function testPrefixesUseNamespaceWithAliasDoesNotDoublePrefix(): void
+    {
+        $replacer = new NamespaceReplacer('WPSmsBookingIntegrations\\Vendor', ['Symfony\\Polyfill\\Mbstring']);
+        $input = 'use WPSmsBookingIntegrations\\Vendor\\Symfony\\Polyfill\\Mbstring as p;';
+        $result = $replacer->replace($input);
+
+        $this->assertSame($input, $result);
+    }
+
     // ========================================================================
     // Pattern 3: Fully qualified names
     // ========================================================================
