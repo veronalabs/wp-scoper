@@ -65,8 +65,8 @@ class ConfigTest extends TestCase
         $this->assertSame([], $config->getExcludePackages());
         // Built-in patterns are always included
         $this->assertContains('/\\.md$/i', $config->getExcludePatterns());
-        $this->assertContains('/examples?\\//i', $config->getExcludePatterns());
-        $this->assertContains('/ext\\//i', $config->getExcludePatterns());
+        $this->assertContains('/(?:^|\\/)examples?\\//i', $config->getExcludePatterns());
+        $this->assertContains('/(?:^|\\/)ext\\//i', $config->getExcludePatterns());
         $this->assertSame(['views', 'templates', 'resources'], $config->getExcludeDirectories());
         $this->assertFalse($config->shouldDeleteVendorPackages());
         $this->assertTrue($config->shouldUpdateCallSites());
