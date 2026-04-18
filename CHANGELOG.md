@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.6 - 2026-04-18
 
 ### Fixed
 - **Unanchored built-in directory exclude patterns dropped legitimate directories**: `ext/`, `examples?/`, `tests?/`, `php4/`, `dev-bin/`, `.github/`, `.gitlab/` behaved as substring matches, so e.g. `Text/` and `Context/` were treated as `ext/` and silently omitted from the scoped output. The seven patterns now anchor to path-start or immediately after `/`.
