@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.7 - 2026-04-22
+
+### Fixed
+- **Polyfill stub classes incorrectly prefixed**: Symfony polyfill packages (`polyfill-intl-normalizer`, `polyfill-php73`, `polyfill-php80`) ship stub files that declare classes in the global namespace so they act as fallbacks when the corresponding PHP extension or version is missing. `ClassmapReplacer` prefixed these stubs alongside other global classes, which broke the fallbacks and caused fatal `Class "X" not found` errors at runtime on servers that lacked the native implementation — most visibly `Normalizer` on hosts without the `intl` extension, but also `Attribute`, `JsonException`, `PhpToken`, and `UnhandledMatchError` on older PHP versions. The built-in allowlist now covers these five classes, plus the related `CompileError`, `UnitEnum`, `BackedEnum`, `SensitiveParameter`, and `Override` globals.
+
+---
+
 ## 1.2.6 - 2026-04-18
 
 ### Fixed

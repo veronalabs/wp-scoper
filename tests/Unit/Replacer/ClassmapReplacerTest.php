@@ -91,6 +91,43 @@ class ClassmapReplacerTest extends TestCase
         $this->assertStringNotContainsString('WPS_stdClass', $result);
     }
 
+    /**
+     * @dataProvider polyfillStubClassProvider
+     */
+    public function testDoesNotPrefixPolyfillStubClasses(string $className): void
+    {
+        // Symfony polyfill-* packages ship stubs that declare these classes in
+        // the global namespace so they act as a fallback when the corresponding
+        // PHP extension/version is missing. Prefixing the stub class breaks the
+        // fallback and causes "Class X not found" fatals on servers that lack
+        // the native implementation (e.g. PHP without the intl extension).
+        $replacer = new ClassmapReplacer('WPS_', [$className]);
+        $stub = "<?php\nclass {$className} {}\n";
+        $usage = "<?php\n\$x = new {$className}();\n{$className}::FOO;";
+
+        $this->assertStringNotContainsString(
+            'WPS_' . $className,
+            $replacer->replace($stub),
+            "Polyfill stub declaration for {$className} must stay in the global namespace"
+        );
+        $this->assertStringNotContainsString(
+            'WPS_' . $className,
+            $replacer->replace($usage),
+            "References to global polyfilled {$className} must not be prefixed"
+        );
+    }
+
+    public function polyfillStubClassProvider(): array
+    {
+        return [
+            'Attribute (PHP 8.0)'              => ['Attribute'],
+            'JsonException (PHP 7.3)'          => ['JsonException'],
+            'Normalizer (intl extension)'      => ['Normalizer'],
+            'PhpToken (PHP 8.0)'               => ['PhpToken'],
+            'UnhandledMatchError (PHP 8.0)'    => ['UnhandledMatchError'],
+        ];
+    }
+
     public function testDoesNotDoublePrefixClass(): void
     {
         $replacer = new ClassmapReplacer('WPS_', ['MyGlobalClass']);
