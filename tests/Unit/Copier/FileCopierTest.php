@@ -110,6 +110,85 @@ class FileCopierTest extends TestCase
         $this->assertFileDoesNotExist($testDir . '/old-file.php');
     }
 
+    public function testDeleteVendorPackagesStripsComposerAutoloadFilesReferences(): void
+    {
+        // Build a fake vendor layout: two packages, one of which has a
+        // bootstrap file referenced from autoload_files.php and autoload_static.php.
+        $vendorDir = $this->tempDir . '/vendor';
+        mkdir($vendorDir . '/symfony/polyfill-mbstring', 0777, true);
+        mkdir($vendorDir . '/keep-me/keep-me', 0777, true);
+        mkdir($vendorDir . '/composer', 0777, true);
+
+        file_put_contents(
+            $vendorDir . '/symfony/polyfill-mbstring/bootstrap.php',
+            '<?php // polyfill bootstrap'
+        );
+        file_put_contents(
+            $vendorDir . '/keep-me/keep-me/bootstrap.php',
+            '<?php // unrelated bootstrap'
+        );
+
+        $autoloadFiles = <<<'PHP'
+<?php
+return array(
+    '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => $vendorDir . '/symfony/polyfill-mbstring/bootstrap.php',
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' => $vendorDir . '/keep-me/keep-me/bootstrap.php',
+);
+PHP;
+        file_put_contents($vendorDir . '/composer/autoload_files.php', $autoloadFiles);
+
+        $autoloadStatic = <<<'PHP'
+<?php
+namespace Composer\Autoload;
+
+class ComposerStaticInitTest
+{
+    public static $files = array (
+        '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
+        'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' => __DIR__ . '/..' . '/keep-me/keep-me/bootstrap.php',
+    );
+}
+PHP;
+        file_put_contents($vendorDir . '/composer/autoload_static.php', $autoloadStatic);
+
+        $deleted = new Package(
+            'symfony/polyfill-mbstring',
+            $vendorDir . '/symfony/polyfill-mbstring'
+        );
+
+        $copier = new FileCopier();
+        $copier->deleteVendorPackages([$deleted]);
+
+        $this->assertDirectoryDoesNotExist(
+            $vendorDir . '/symfony/polyfill-mbstring',
+            'Deleted package directory should be gone'
+        );
+
+        $resultFiles = file_get_contents($vendorDir . '/composer/autoload_files.php');
+        $this->assertStringNotContainsString(
+            'symfony/polyfill-mbstring',
+            $resultFiles,
+            'autoload_files.php must drop references to deleted packages'
+        );
+        $this->assertStringContainsString(
+            'keep-me/keep-me',
+            $resultFiles,
+            'autoload_files.php must keep references to packages that were not deleted'
+        );
+
+        $resultStatic = file_get_contents($vendorDir . '/composer/autoload_static.php');
+        $this->assertStringNotContainsString(
+            'symfony/polyfill-mbstring',
+            $resultStatic,
+            'autoload_static.php must drop references to deleted packages'
+        );
+        $this->assertStringContainsString(
+            'keep-me/keep-me',
+            $resultStatic,
+            'autoload_static.php must keep references to packages that were not deleted'
+        );
+    }
+
     private function recursiveDelete(string $dir): void
     {
         $items = new \RecursiveIteratorIterator(

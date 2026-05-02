@@ -89,14 +89,27 @@ class FileCopier
     }
 
     /**
-     * Delete original packages from vendor directory.
+     * Delete original packages from vendor directory and clean up the
+     * generated Composer autoloader files so they no longer reference the
+     * removed packages. Without this cleanup, eager `files` autoload entries
+     * (typically Symfony polyfills, league/csv functions, etc.) would fatal
+     * on autoloader boot with "file not found" errors after the vendor copy
+     * is gone.
      *
      * @param array<Package> $packages
      */
     public function deleteVendorPackages(array $packages): void
     {
+        $vendorDir = null;
+
         foreach ($packages as $package) {
             if (is_dir($package->getPath())) {
+                if ($vendorDir === null) {
+                    // Package paths look like {vendorDir}/{vendor}/{name}, so
+                    // two levels up is always the vendor root.
+                    $vendorDir = dirname($package->getPath(), 2);
+                }
+
                 $this->filesystem->remove($package->getPath());
 
                 // Clean up empty parent org directory (e.g., vendor/geoip2/ after removing vendor/geoip2/geoip2/)
@@ -104,6 +117,59 @@ class FileCopier
                 if (is_dir($parentDir) && count(scandir($parentDir)) === 2) {
                     $this->filesystem->remove($parentDir);
                 }
+            }
+        }
+
+        if ($vendorDir !== null) {
+            $this->cleanComposerAutoloadFiles($packages, $vendorDir);
+        }
+    }
+
+    /**
+     * Strip references to the given packages from Composer's generated
+     * autoload_files.php and autoload_static.php so the autoloader doesn't
+     * try to require files that have just been deleted.
+     *
+     * @param array<Package> $packages
+     */
+    private function cleanComposerAutoloadFiles(array $packages, string $vendorDir): void
+    {
+        $packageNames = array_map(static function (Package $p): string {
+            return $p->getName();
+        }, $packages);
+
+        if (empty($packageNames)) {
+            return;
+        }
+
+        $composerDir = $vendorDir . '/composer';
+
+        foreach (['autoload_files.php', 'autoload_static.php'] as $filename) {
+            $file = $composerDir . '/' . $filename;
+
+            if (!is_file($file)) {
+                continue;
+            }
+
+            $content = file_get_contents($file);
+            if ($content === false) {
+                continue;
+            }
+
+            $original = $content;
+
+            foreach ($packageNames as $packageName) {
+                // Remove any line whose path segment is "/{vendor}/{package}/" or
+                // "/{vendor}/{package}'" — covers both the array-syntax in
+                // autoload_files.php (`$vendorDir . '/symfony/polyfill-mbstring/bootstrap.php'`)
+                // and the static syntax in autoload_static.php
+                // (`__DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php'`).
+                $pattern = '#^.*/' . preg_quote($packageName, '#') . "[/'].*\R?#m";
+                $content = preg_replace($pattern, '', $content);
+            }
+
+            if ($content !== null && $content !== $original) {
+                file_put_contents($file, $content);
             }
         }
     }

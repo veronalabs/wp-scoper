@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.8 - 2026-05-02
+
+### Fixed
+- **Stale `autoload_files.php` / `autoload_static.php` references after `delete_vendor_packages: true`**: when a scoped package declared an `autoload.files` entry (Symfony polyfills, `league/csv` function file, etc.), wp-scoper deleted the original package directory but left Composer's eager-load tables pointing at the now-missing path, triggering `require` failures on autoloader boot. `FileCopier::deleteVendorPackages()` now strips entries for the removed packages from both files automatically, so consumers no longer need a custom `bin/fix-autoload.php` post-script.
+
+---
+
 ## 1.2.7 - 2026-04-22
 
 ### Fixed
