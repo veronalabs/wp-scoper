@@ -168,4 +168,141 @@ class ConfigTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         Config::fromComposerJson('/nonexistent/composer.json');
     }
+
+    public function testApplyProfileAppendsPackages(): void
+    {
+        $merged = Config::applyProfile([
+            'namespace_prefix' => 'WP_Statistics\\Deps',
+            'packages' => ['geoip2/geoip2', 'matomo/device-detector'],
+            'profiles' => [
+                'premium' => ['packages' => ['veronalabs/wp-premium-sdk']],
+            ],
+        ], 'premium');
+
+        $this->assertSame(
+            ['geoip2/geoip2', 'matomo/device-detector', 'veronalabs/wp-premium-sdk'],
+            $merged['packages']
+        );
+        $this->assertArrayNotHasKey('profiles', $merged, 'profiles key should be stripped after merge');
+    }
+
+    public function testApplyProfileDeduplicatesPackages(): void
+    {
+        $merged = Config::applyProfile([
+            'namespace_prefix' => 'WP_Statistics\\Deps',
+            'packages' => ['geoip2/geoip2', 'matomo/device-detector'],
+            'profiles' => [
+                'premium' => ['packages' => ['matomo/device-detector', 'veronalabs/wp-premium-sdk']],
+            ],
+        ], 'premium');
+
+        $this->assertSame(
+            ['geoip2/geoip2', 'matomo/device-detector', 'veronalabs/wp-premium-sdk'],
+            $merged['packages']
+        );
+    }
+
+    public function testApplyProfileReplacesScalarKeys(): void
+    {
+        $merged = Config::applyProfile([
+            'namespace_prefix' => 'WP_Statistics\\Deps',
+            'packages' => ['geoip2/geoip2'],
+            'target_directory' => 'packages',
+            'profiles' => [
+                'premium' => ['target_directory' => 'pro-packages'],
+            ],
+        ], 'premium');
+
+        $this->assertSame('pro-packages', $merged['target_directory']);
+    }
+
+    public function testApplyProfileWithNullReturnsBaseConfigStrippingProfiles(): void
+    {
+        $merged = Config::applyProfile([
+            'namespace_prefix' => 'WP_Statistics\\Deps',
+            'packages' => ['geoip2/geoip2'],
+            'profiles' => [
+                'premium' => ['packages' => ['veronalabs/wp-premium-sdk']],
+            ],
+        ], null);
+
+        $this->assertSame(['geoip2/geoip2'], $merged['packages']);
+        $this->assertArrayNotHasKey('profiles', $merged);
+    }
+
+    public function testApplyProfileThrowsForUnknownProfile(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('SCOPER_PROFILE="agency"');
+
+        Config::applyProfile([
+            'namespace_prefix' => 'WP_Statistics\\Deps',
+            'packages' => ['geoip2/geoip2'],
+            'profiles' => [
+                'premium' => ['packages' => ['veronalabs/wp-premium-sdk']],
+            ],
+        ], 'agency');
+    }
+
+    public function testApplyProfileThrowsWhenProfileRequestedButNoneDefined(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Defined profiles: (none)');
+
+        Config::applyProfile([
+            'namespace_prefix' => 'WP_Statistics\\Deps',
+            'packages' => ['geoip2/geoip2'],
+        ], 'premium');
+    }
+
+    public function testFromArrayWithProfileMergesPackages(): void
+    {
+        $config = Config::fromArray([
+            'namespace_prefix' => 'WP_Statistics\\Deps',
+            'packages' => ['geoip2/geoip2'],
+            'profiles' => [
+                'premium' => ['packages' => ['veronalabs/wp-premium-sdk']],
+            ],
+        ], '/tmp', [], 'premium');
+
+        $this->assertSame(
+            ['geoip2/geoip2', 'veronalabs/wp-premium-sdk'],
+            $config->getPackages()
+        );
+    }
+
+    public function testFromArrayWithoutProfileLeavesPackagesUntouched(): void
+    {
+        $config = Config::fromArray([
+            'namespace_prefix' => 'WP_Statistics\\Deps',
+            'packages' => ['geoip2/geoip2'],
+            'profiles' => [
+                'premium' => ['packages' => ['veronalabs/wp-premium-sdk']],
+            ],
+        ], '/tmp');
+
+        $this->assertSame(['geoip2/geoip2'], $config->getPackages());
+    }
+
+    public function testApplyProfileMergesDevPackages(): void
+    {
+        $merged = Config::applyProfile([
+            'namespace_prefix' => 'WP_Statistics\\Deps',
+            'packages' => ['geoip2/geoip2'],
+            'dev_packages' => [
+                'enabled' => true,
+                'packages' => ['phpunit/phpunit'],
+            ],
+            'profiles' => [
+                'premium' => [
+                    'dev_packages' => [
+                        'packages' => ['mockery/mockery'],
+                    ],
+                ],
+            ],
+        ], 'premium');
+
+        $this->assertTrue($merged['dev_packages']['enabled']);
+        $this->assertSame(['phpunit/phpunit', 'mockery/mockery'], $merged['dev_packages']['packages']);
+    }
 }

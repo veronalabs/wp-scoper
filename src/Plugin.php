@@ -70,7 +70,14 @@ class Plugin implements PluginInterface, EventSubscriberInterface, Capable
             $autoload = $this->composer->getPackage()->getAutoload();
             $hostPsr4 = $autoload['psr-4'] ?? [];
 
-            $config = Config::fromArray($extra['wp-scoper'], $workingDir, $hostPsr4);
+            $profile = getenv('SCOPER_PROFILE');
+            $profile = ($profile === false || $profile === '') ? null : $profile;
+
+            if ($profile !== null) {
+                $this->io->write("  <comment>Using profile: {$profile}</comment>");
+            }
+
+            $config = Config::fromArray($extra['wp-scoper'], $workingDir, $hostPsr4, $profile);
 
             $prefixer = new Prefixer($config, function (string $message) {
                 $this->io->write("  <comment>{$message}</comment>");

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.0 - 2026-05-04
+
+### Added
+- **Profile-aware scoping via `extra.wp-scoper.profiles.{name}`**: a single composer.json can now express a base set of scoped packages plus zero-or-more named profiles that contribute additional packages (and override scalar keys). Build scripts pick the profile via the `SCOPER_PROFILE` environment variable (e.g., `SCOPER_PROFILE=premium composer install`). `packages` arrays are appended + de-duplicated; all other keys (namespace_prefix, target_directory, etc.) replace base values when present in the profile. `dev_packages.packages` follow the same append-and-dedupe rule. Throws `InvalidArgumentException` if `SCOPER_PROFILE` names a profile that isn't defined — fail-loud over silent-wrong-output. Public API: `Config::applyProfile(array, ?string): array` and a new optional `$profile` parameter on `Config::fromArray()`. Existing `composer.json` configs without `profiles` are unaffected.
+
+---
+
 ## 1.2.8 - 2026-05-02
 
 ### Fixed
