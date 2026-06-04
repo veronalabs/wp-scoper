@@ -74,11 +74,6 @@ class NullableParamReplacer implements ReplacerInterface
         $type = $m['type'];
         $compact = preg_replace('/\s+/', '', $type);
 
-        // Defensive: the regex cannot capture a leading "?", but never double up.
-        if ($compact === '' || $compact[0] === '?') {
-            return $m[0];
-        }
-
         $members = explode('|', $compact);
         foreach ($members as $member) {
             $bare = strtolower(ltrim($member, '\\'));

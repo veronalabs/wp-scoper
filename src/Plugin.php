@@ -77,7 +77,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface, Capable
                 $this->io->write("  <comment>Using profile: {$profile}</comment>");
             }
 
-            $phpConstraint = $this->detectPhpConstraint();
+            $phpConstraint = self::detectPhpConstraint($this->composer);
 
             $config = Config::fromArray($extra['wp-scoper'], $workingDir, $hostPsr4, $profile, $phpConstraint);
 
@@ -100,15 +100,16 @@ class Plugin implements PluginInterface, EventSubscriberInterface, Capable
     /**
      * The host project's PHP version constraint for php_compat floor detection:
      * the pinned platform version if set, else the declared `require.php`.
+     * Shared by the plugin hook and the `wp-scope` command.
      */
-    private function detectPhpConstraint(): ?string
+    public static function detectPhpConstraint(Composer $composer): ?string
     {
-        $platform = $this->composer->getConfig()->get('platform');
+        $platform = $composer->getConfig()->get('platform');
         if (is_array($platform) && !empty($platform['php'])) {
             return $platform['php'];
         }
 
-        $requires = $this->composer->getPackage()->getRequires();
+        $requires = $composer->getPackage()->getRequires();
         if (isset($requires['php'])) {
             return $requires['php']->getPrettyConstraint();
         }

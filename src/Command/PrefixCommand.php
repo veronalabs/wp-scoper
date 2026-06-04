@@ -9,6 +9,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use VeronaLabs\WpScoper\Config\Config;
+use VeronaLabs\WpScoper\Plugin;
 use VeronaLabs\WpScoper\Prefixer;
 
 class PrefixCommand extends BaseCommand
@@ -48,13 +49,7 @@ class PrefixCommand extends BaseCommand
             $autoload = $composer->getPackage()->getAutoload();
             $hostPsr4 = $autoload['psr-4'] ?? [];
 
-            $platform = $composer->getConfig()->get('platform');
-            $phpConstraint = (is_array($platform) && !empty($platform['php']))
-                ? $platform['php']
-                : ($composer->getPackage()->getRequires()['php'] ?? null);
-            if ($phpConstraint !== null && !is_string($phpConstraint)) {
-                $phpConstraint = $phpConstraint->getPrettyConstraint();
-            }
+            $phpConstraint = Plugin::detectPhpConstraint($composer);
 
             $config = Config::fromArray($extra['wp-scoper'], $workingDir, $hostPsr4, null, $phpConstraint);
 

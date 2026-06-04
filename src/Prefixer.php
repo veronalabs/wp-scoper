@@ -194,20 +194,13 @@ class Prefixer
 
             $original = $contents;
 
-            // Apply replacements in order: namespaces first, then classes, then constants
-            $contents = $namespaceReplacer->replace($contents);
-
-            if ($classmapReplacer !== null) {
-                $contents = $classmapReplacer->replace($contents);
-            }
-
-            if ($constantReplacer !== null) {
-                $contents = $constantReplacer->replace($contents);
-            }
-
-            if ($nullableReplacer !== null) {
-                $contents = $nullableReplacer->replace($contents);
-            }
+            $contents = $this->applyReplacers(
+                $contents,
+                $namespaceReplacer,
+                $classmapReplacer,
+                $constantReplacer,
+                $nullableReplacer
+            );
 
             if ($contents !== $original) {
                 file_put_contents($file, $contents);
@@ -289,15 +282,8 @@ class Prefixer
 
             $original = $contents;
 
-            $contents = $namespaceReplacer->replace($contents);
-
-            if ($classmapReplacer !== null) {
-                $contents = $classmapReplacer->replace($contents);
-            }
-
-            if ($constantReplacer !== null) {
-                $contents = $constantReplacer->replace($contents);
-            }
+            // No nullable fixer here: the host project's own source is never rewritten.
+            $contents = $this->applyReplacers($contents, $namespaceReplacer, $classmapReplacer, $constantReplacer);
 
             if ($contents !== $original) {
                 file_put_contents($file->getRealPath(), $contents);
@@ -308,6 +294,35 @@ class Prefixer
         $this->stats['call_sites_updated'] = $count;
 
         $this->log(sprintf('Updated %d source file(s)', $count));
+    }
+
+    /**
+     * Apply the replacer chain to one file's contents, in order. The nullable
+     * fixer is opt-in per call site: vendor files pass it; host source (call
+     * sites) must not, so it defaults to null.
+     */
+    private function applyReplacers(
+        string $contents,
+        NamespaceReplacer $namespaceReplacer,
+        ?ClassmapReplacer $classmapReplacer,
+        ?ConstantReplacer $constantReplacer,
+        ?NullableParamReplacer $nullableReplacer = null
+    ): string {
+        $contents = $namespaceReplacer->replace($contents);
+
+        if ($classmapReplacer !== null) {
+            $contents = $classmapReplacer->replace($contents);
+        }
+
+        if ($constantReplacer !== null) {
+            $contents = $constantReplacer->replace($contents);
+        }
+
+        if ($nullableReplacer !== null) {
+            $contents = $nullableReplacer->replace($contents);
+        }
+
+        return $contents;
     }
 
     /**
@@ -400,19 +415,14 @@ class Prefixer
             }
 
             $original = $contents;
-            $contents = $namespaceReplacer->replace($contents);
 
-            if ($classmapReplacer !== null) {
-                $contents = $classmapReplacer->replace($contents);
-            }
-
-            if ($constantReplacer !== null) {
-                $contents = $constantReplacer->replace($contents);
-            }
-
-            if ($nullableReplacer !== null) {
-                $contents = $nullableReplacer->replace($contents);
-            }
+            $contents = $this->applyReplacers(
+                $contents,
+                $namespaceReplacer,
+                $classmapReplacer,
+                $constantReplacer,
+                $nullableReplacer
+            );
 
             if ($contents !== $original) {
                 file_put_contents($file, $contents);
