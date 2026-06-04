@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.1 - 2026-06-04
+
+### Changed
+- Internal refactor only, no behaviour change: deduplicated the replacer-apply sequence into `Prefixer::applyReplacers()` (shared by the dependency loop, dev-package loop, and call-site updates — the latter still skips the nullable fixer), shared the PHP-constraint detection as `Plugin::detectPhpConstraint()` across the plugin hook and `wp-scope` command, and removed an unreachable guard in `NullableParamReplacer`. Scoped output is identical to 1.4.0.
+
+---
+
 ## 1.4.0 - 2026-06-04
 
 ### Added
