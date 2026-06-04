@@ -71,6 +71,57 @@ class ConfigTest extends TestCase
         $this->assertFalse($config->shouldDeleteVendorPackages());
         $this->assertTrue($config->shouldUpdateCallSites());
         $this->assertNull($config->getDevPackages());
+        $this->assertFalse($config->isPhpCompatEnabled());
+        $this->assertNull($config->getTargetPhpFloor());
+    }
+
+    public function testPhpCompatOptIn(): void
+    {
+        $config = Config::fromArray([
+            'namespace_prefix' => 'WP_SMS\\Dependencies',
+            'packages' => [],
+            'php_compat' => true,
+        ], '/tmp', [], null, '>=8.0');
+
+        $this->assertTrue($config->isPhpCompatEnabled());
+        $this->assertSame('8.0', $config->getTargetPhpFloor());
+        $this->assertTrue($config->targetPhpAtLeast('7.1'));
+        $this->assertTrue($config->targetPhpAtLeast('8.0'));
+        $this->assertFalse($config->targetPhpAtLeast('8.1'));
+    }
+
+    public function testTargetPhpFloorUnknownWhenNoConstraint(): void
+    {
+        $config = Config::fromArray([
+            'namespace_prefix' => 'WP_SMS\\Dependencies',
+            'packages' => [],
+        ], '/tmp');
+
+        $this->assertNull($config->getTargetPhpFloor());
+        $this->assertFalse($config->targetPhpAtLeast('7.1'));
+    }
+
+    /** @dataProvider phpFloorProvider */
+    public function testParsePhpFloor(?string $constraint, ?string $expected): void
+    {
+        $this->assertSame($expected, Config::parsePhpFloor($constraint));
+    }
+
+    /** @return array<string, array{0: ?string, 1: ?string}> */
+    public static function phpFloorProvider(): array
+    {
+        return [
+            'exact'          => ['8.0', '8.0'],
+            'gte'            => ['>=8.0', '8.0'],
+            'caret'          => ['^8.1', '8.1'],
+            'tilde'          => ['~8.2', '8.2'],
+            'wildcard'       => ['8.0.*', '8.0'],
+            'union floor'    => ['^7.2|^8.0', '7.2'],
+            'range'          => ['>=7.4 <8.3', '7.4'],
+            'bare major'     => ['>=8', '8.0'],
+            'null'           => [null, null],
+            'empty'          => ['', null],
+        ];
     }
 
     public function testCustomValues(): void

@@ -48,7 +48,15 @@ class PrefixCommand extends BaseCommand
             $autoload = $composer->getPackage()->getAutoload();
             $hostPsr4 = $autoload['psr-4'] ?? [];
 
-            $config = Config::fromArray($extra['wp-scoper'], $workingDir, $hostPsr4);
+            $platform = $composer->getConfig()->get('platform');
+            $phpConstraint = (is_array($platform) && !empty($platform['php']))
+                ? $platform['php']
+                : ($composer->getPackage()->getRequires()['php'] ?? null);
+            if ($phpConstraint !== null && !is_string($phpConstraint)) {
+                $phpConstraint = $phpConstraint->getPrettyConstraint();
+            }
+
+            $config = Config::fromArray($extra['wp-scoper'], $workingDir, $hostPsr4, null, $phpConstraint);
 
             $prefixer = new Prefixer($config, function (string $message) use ($output) {
                 $output->writeln("  <comment>{$message}</comment>");

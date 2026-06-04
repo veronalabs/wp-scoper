@@ -77,7 +77,9 @@ class Plugin implements PluginInterface, EventSubscriberInterface, Capable
                 $this->io->write("  <comment>Using profile: {$profile}</comment>");
             }
 
-            $config = Config::fromArray($extra['wp-scoper'], $workingDir, $hostPsr4, $profile);
+            $phpConstraint = $this->detectPhpConstraint();
+
+            $config = Config::fromArray($extra['wp-scoper'], $workingDir, $hostPsr4, $profile, $phpConstraint);
 
             $prefixer = new Prefixer($config, function (string $message) {
                 $this->io->write("  <comment>{$message}</comment>");
@@ -93,5 +95,24 @@ class Plugin implements PluginInterface, EventSubscriberInterface, Capable
         } catch (\Exception $e) {
             $this->io->writeError("<error>wp-scoper error: {$e->getMessage()}</error>");
         }
+    }
+
+    /**
+     * The host project's PHP version constraint for php_compat floor detection:
+     * the pinned platform version if set, else the declared `require.php`.
+     */
+    private function detectPhpConstraint(): ?string
+    {
+        $platform = $this->composer->getConfig()->get('platform');
+        if (is_array($platform) && !empty($platform['php'])) {
+            return $platform['php'];
+        }
+
+        $requires = $this->composer->getPackage()->getRequires();
+        if (isset($requires['php'])) {
+            return $requires['php']->getPrettyConstraint();
+        }
+
+        return null;
     }
 }

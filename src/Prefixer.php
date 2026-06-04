@@ -13,6 +13,7 @@ use VeronaLabs\WpScoper\Generator\AutoloadGenerator;
 use VeronaLabs\WpScoper\Replacer\ClassmapReplacer;
 use VeronaLabs\WpScoper\Replacer\ConstantReplacer;
 use VeronaLabs\WpScoper\Replacer\NamespaceReplacer;
+use VeronaLabs\WpScoper\Replacer\NullableParamReplacer;
 
 class Prefixer
 {
@@ -180,6 +181,9 @@ class Prefixer
         $constantReplacer = !empty($constants)
             ? new ConstantReplacer($this->config->getConstantPrefix(), $constants)
             : null;
+        // Vendor-only PHP-compat fixer. Intentionally NOT passed to
+        // updateCallSites() — the host project's own source is never rewritten.
+        $nullableReplacer = $this->phpCompatReplacer();
 
         $this->log('Applying namespace prefixes...');
         foreach ($allPhpFiles as $file) {
@@ -199,6 +203,10 @@ class Prefixer
 
             if ($constantReplacer !== null) {
                 $contents = $constantReplacer->replace($contents);
+            }
+
+            if ($nullableReplacer !== null) {
+                $contents = $nullableReplacer->replace($contents);
             }
 
             if ($contents !== $original) {
@@ -302,6 +310,26 @@ class Prefixer
         $this->log(sprintf('Updated %d source file(s)', $count));
     }
 
+    /**
+     * Build the vendor-only PHP-compat fixer when `php_compat` is enabled and
+     * the detected PHP floor can express the rewritten syntax. The implicit ->
+     * explicit nullable rewrite needs PHP >= 7.1; when the floor is unknown we
+     * still run it, since the output is valid on any PHP that runs scoped code.
+     */
+    private function phpCompatReplacer(): ?NullableParamReplacer
+    {
+        if (!$this->config->isPhpCompatEnabled()) {
+            return null;
+        }
+
+        $floor = $this->config->getTargetPhpFloor();
+        if ($floor !== null && !$this->config->targetPhpAtLeast('7.1')) {
+            return null;
+        }
+
+        return new NullableParamReplacer();
+    }
+
     private function runDevPackages(
         PackageFinder $packageFinder,
         \VeronaLabs\WpScoper\Config\DevConfig $devConfig,
@@ -363,6 +391,7 @@ class Prefixer
         $constantReplacer = !empty($constants)
             ? new ConstantReplacer($this->config->getConstantPrefix(), $constants)
             : null;
+        $nullableReplacer = $this->phpCompatReplacer();
 
         foreach ($devPhpFiles as $file) {
             $contents = file_get_contents($file);
@@ -379,6 +408,10 @@ class Prefixer
 
             if ($constantReplacer !== null) {
                 $contents = $constantReplacer->replace($contents);
+            }
+
+            if ($nullableReplacer !== null) {
+                $contents = $nullableReplacer->replace($contents);
             }
 
             if ($contents !== $original) {

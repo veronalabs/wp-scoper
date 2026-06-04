@@ -86,6 +86,12 @@ class Config
     /** @var DevConfig|null */
     private $devPackages;
 
+    /** @var bool Whether to apply PHP cross-version compatibility fixers to scoped code */
+    private $phpCompat;
+
+    /** @var string|null Raw PHP version constraint of the host project (platform.php or require.php) */
+    private $phpConstraint;
+
     /** @var array<string, string> PSR-4 mappings from the host project's autoload config */
     private $hostAutoloadPsr4;
 
@@ -124,6 +130,8 @@ class Config
         $this->devPackages = isset($config['dev_packages'])
             ? DevConfig::fromArray($config['dev_packages'])
             : null;
+        $this->phpCompat = $config['php_compat'] ?? false;
+        $this->phpConstraint = null;
         $this->hostAutoloadPsr4 = [];
     }
 
@@ -153,16 +161,23 @@ class Config
             $instance->hostAutoloadPsr4 = $json['autoload']['psr-4'];
         }
 
+        // Detect the project's PHP floor for php_compat fixers. Prefer the
+        // pinned platform version, fall back to the declared require constraint.
+        $instance->phpConstraint = $json['config']['platform']['php']
+            ?? $json['require']['php']
+            ?? null;
+
         return $instance;
     }
 
-    public static function fromArray(array $config, string $workingDirectory = '.', array $hostAutoloadPsr4 = [], ?string $profile = null): self
+    public static function fromArray(array $config, string $workingDirectory = '.', array $hostAutoloadPsr4 = [], ?string $profile = null, ?string $phpConstraint = null): self
     {
         if ($profile !== null) {
             $config = self::applyProfile($config, $profile);
         }
         $instance = new self($config, $workingDirectory);
         $instance->hostAutoloadPsr4 = $hostAutoloadPsr4;
+        $instance->phpConstraint = $phpConstraint;
         return $instance;
     }
 
@@ -326,6 +341,80 @@ class Config
     public function getDevPackages(): ?DevConfig
     {
         return $this->devPackages;
+    }
+
+    /**
+     * Whether PHP cross-version compatibility fixers (e.g. implicit-nullable
+     * parameter normalization) should be applied to the scoped dependency
+     * code. Opt-in via `extra.wp-scoper.php_compat: true`.
+     */
+    public function isPhpCompatEnabled(): bool
+    {
+        return $this->phpCompat;
+    }
+
+    /**
+     * The host project's minimum supported PHP version as "X.Y", derived from
+     * its composer.json (platform.php preferred, require.php fallback), or null
+     * when no constraint is available. Used to gate php_compat fixers so that
+     * rewritten syntax stays valid down to the declared floor.
+     */
+    public function getTargetPhpFloor(): ?string
+    {
+        return self::parsePhpFloor($this->phpConstraint);
+    }
+
+    /**
+     * True when the detected PHP floor is >= $version ("X.Y"). False when the
+     * floor is unknown — callers decide how to treat the unknown case.
+     */
+    public function targetPhpAtLeast(string $version): bool
+    {
+        $floor = $this->getTargetPhpFloor();
+        if ($floor === null) {
+            return false;
+        }
+
+        return self::versionKey($floor) >= self::versionKey($version);
+    }
+
+    /**
+     * Extract the lowest "X.Y" PHP version satisfying a Composer constraint
+     * string, without depending on composer/semver (the standalone CLI path
+     * may not have it autoloaded). Handles forms like "8.0", ">=8.0", "^8.0",
+     * "~8.1", "8.0.*" and unions such as "^7.2|^8.0" (whose floor is the lowest
+     * branch). Returns null for empty/unparseable input.
+     */
+    public static function parsePhpFloor(?string $constraint): ?string
+    {
+        if ($constraint === null || trim($constraint) === '') {
+            return null;
+        }
+
+        if (!preg_match_all('/(\d+)(?:\.(\d+))?(?:\.\d+)?/', $constraint, $matches, PREG_SET_ORDER)) {
+            return null;
+        }
+
+        $min = null;
+        foreach ($matches as $set) {
+            $major = (int) $set[1];
+            $minor = isset($set[2]) && $set[2] !== '' ? (int) $set[2] : 0;
+            $key = $major * 1000 + $minor;
+            if ($min === null || $key < $min['key']) {
+                $min = ['key' => $key, 'str' => $major . '.' . $minor];
+            }
+        }
+
+        return $min['str'] ?? null;
+    }
+
+    private static function versionKey(string $version): int
+    {
+        $parts = explode('.', $version);
+        $major = (int) ($parts[0] ?? 0);
+        $minor = (int) ($parts[1] ?? 0);
+
+        return $major * 1000 + $minor;
     }
 
     public function getWorkingDirectory(): string

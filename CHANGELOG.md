@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.0 - 2026-06-04
+
+### Added
+- **PHP cross-version compatibility fixing via `extra.wp-scoper.php_compat: true`** (default `false`): opt-in pass that rewrites implicitly-nullable parameters (`Type $x = null`) in scoped dependency code to the explicit form (`?Type $x = null`, and `A|B $x = null` → `A|B|null $x = null`). PHP 8.4 deprecates the implicit form, so dependencies pinned for an older PHP floor (e.g. `thecodingmachine/safe` kept for PHP 8.0 support) otherwise flood PHP 8.4/8.5 runtimes with `E_DEPRECATED` notices. The rewrite is behaviour-identical and valid on any PHP ≥ 7.1. The target PHP floor is **auto-detected** from the host `composer.json` (`config.platform.php` preferred, `require.php` fallback) — no hardcoded version — and gates the fixer so rewritten syntax stays valid for the declared minimum. Skips already-nullable types, `mixed`, unions already containing `null`, intersection types, untyped params, and non-`null` defaults. Applied to copied dependency files only — the host project's own source is never rewritten. New `NullableParamReplacer`; new `Config` API: `isPhpCompatEnabled()`, `getTargetPhpFloor()`, `targetPhpAtLeast()`, `parsePhpFloor()`, and a new optional `$phpConstraint` parameter on `Config::fromArray()`. Existing configs without `php_compat` are unaffected.
+
+---
+
 ## 1.3.0 - 2026-05-04
 
 ### Added

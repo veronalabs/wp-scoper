@@ -115,6 +115,7 @@ After running, WP Scoper displays a summary of what was done:
 | `delete_vendor_packages` | No | `false` | Remove originals from `vendor/` after copy |
 | `update_call_sites` | No | `true` | Update `use` statements in host project files. `true` scans `src/`, or pass an array of directories (see below) |
 | `dev_packages` | No | `null` | Config for prefixing `require-dev` packages separately |
+| `php_compat` | No | `false` | Rewrite implicitly-nullable params (`Type $x = null` → `?Type $x = null`) in scoped code so dependencies pinned for an older PHP floor stay clean on PHP 8.4/8.5 (see below) |
 
 ### Full Configuration Example
 
@@ -132,6 +133,7 @@ After running, WP Scoper displays a summary of what was done:
             "exclude_directories": ["views", "templates", "resources"],
             "delete_vendor_packages": false,
             "update_call_sites": true,
+            "php_compat": true,
             "dev_packages": {
                 "enabled": true,
                 "target_directory": "tests/vendor-prefixed",
@@ -141,6 +143,14 @@ After running, WP Scoper displays a summary of what was done:
     }
 }
 ```
+
+### PHP compatibility (`php_compat`)
+
+PHP 8.4 deprecates the *implicitly nullable* parameter style — `function f(int $x = null)` — and asks for the explicit `function f(?int $x = null)` instead. A dependency you must keep on an older release (for example `thecodingmachine/safe` pinned to its PHP 8.0-compatible line) can still ship the old style and emit hundreds of `E_DEPRECATED` notices when your site runs on PHP 8.4/8.5.
+
+Set `"php_compat": true` to have wp-scoper rewrite those parameters to the explicit nullable form in the scoped copies. The change is behaviour-identical and valid on every PHP ≥ 7.1, so it keeps the same code clean across your whole supported range. Unions become `A|B|null`; already-nullable types, `mixed`, intersection types, untyped params, and non-`null` defaults are left untouched.
+
+The PHP floor is detected automatically from your `composer.json` — `config.platform.php` if set, otherwise `require.php` — so there is no version to hardcode. Only the copied dependency files are transformed; your own source is never touched.
 
 ## Project Layout
 
