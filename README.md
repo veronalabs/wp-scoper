@@ -30,6 +30,7 @@ Each plugin gets its own isolated copy of dependencies. No conflicts.
 | Autoloader generation | ✅ Yes (classmap) | ❌ No | ⚠️ Partial |
 | Dev-dependency support | ✅ Yes | ❌ No | ❌ No |
 | Update host source files | ✅ Yes | ❌ No | ➖ N/A |
+| PHP 8.4+ compat fixing (`php_compat`) | ✅ Implicit-nullable params | ❌ No | ❌ No |
 | PHP version support | 7.4+ | 8.1+ | 7.2+ |
 
 ## Installation
