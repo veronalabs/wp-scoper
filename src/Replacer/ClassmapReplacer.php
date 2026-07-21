@@ -154,9 +154,25 @@ class ClassmapReplacer implements ReplacerInterface
         }
 
         // String references: 'ClassName' and "ClassName"
-        $contents = preg_replace(
-            '/([\'"])(?!' . $quotedPrefix . ')(' . $quotedClass . ')([\'"])/',
-            '$1' . $prefixed . '$3',
+        //
+        // A quoted class name is only a class reference when it stands alone
+        // (class_exists('Foo'), $map['Foo' => ...], new $class). When it sits next
+        // to a concatenation dot it is a text fragment being glued into a longer
+        // string — e.g. Eloquent building an accessor name with
+        // 'get' . Str::studly($key) . 'Attribute' — and renaming it silently
+        // breaks the result. Leave those alone.
+        $contents = preg_replace_callback(
+            '/(\.\s*)?([\'"])(?!' . $quotedPrefix . ')(' . $quotedClass . ')([\'"])(\s*\.)?/',
+            function (array $matches) use ($prefixed): string {
+                $before = $matches[1] ?? '';
+                $after  = $matches[5] ?? '';
+
+                if ($before !== '' || $after !== '') {
+                    return $matches[0];
+                }
+
+                return $matches[2] . $prefixed . $matches[4];
+            },
             $contents
         );
 

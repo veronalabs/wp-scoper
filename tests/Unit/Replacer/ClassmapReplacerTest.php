@@ -81,6 +81,47 @@ class ClassmapReplacerTest extends TestCase
         $this->assertStringContainsString("'WPS_MyGlobalClass'", $result);
     }
 
+    public function testDoesNotPrefixStringFragmentInConcatenation(): void
+    {
+        // Eloquent builds accessor method names by gluing fragments together:
+        //   'get' . Str::studly($key) . 'Attribute'
+        // Renaming the trailing fragment produces a method name that never
+        // matches, so every model accessor silently stops working.
+        $replacer = new ClassmapReplacer('WPS_', ['Attribute', 'Helper']);
+        $input = "return method_exists(\$this, 'get' . Str::studly(\$key) . 'Attribute');";
+        $result = $replacer->replace($input);
+
+        $this->assertStringNotContainsString('WPS_Attribute', $result);
+        $this->assertSame($input, $result);
+    }
+
+    public function testDoesNotPrefixStringFragmentOnEitherSideOfConcatenation(): void
+    {
+        $replacer = new ClassmapReplacer('WPS_', ['Helper']);
+
+        $this->assertStringNotContainsString('WPS_Helper', $replacer->replace("\$name = 'Helper' . \$suffix;"));
+        $this->assertStringNotContainsString('WPS_Helper', $replacer->replace("\$name = \$prefix . 'Helper';"));
+        $this->assertStringNotContainsString('WPS_Helper', $replacer->replace("\$name = \$prefix . 'Helper' . \$suffix;"));
+    }
+
+    public function testStillPrefixesStandaloneStringReferences(): void
+    {
+        $replacer = new ClassmapReplacer('WPS_', ['Helper']);
+
+        $this->assertStringContainsString("class_exists('WPS_Helper')", $replacer->replace("class_exists('Helper')"));
+        $this->assertStringContainsString("'WPS_Helper' =>", $replacer->replace("'Helper' => \$factory,"));
+        $this->assertStringContainsString("\$class = 'WPS_Helper';", $replacer->replace("\$class = 'Helper';"));
+    }
+
+    public function testPrefixesConsecutiveStandaloneStringReferences(): void
+    {
+        $replacer = new ClassmapReplacer('WPS_', ['Helper']);
+        $input = "\$map = ['Helper', 'Helper'];";
+        $result = $replacer->replace($input);
+
+        $this->assertSame("\$map = ['WPS_Helper', 'WPS_Helper'];", $result);
+    }
+
     public function testDoesNotPrefixPhpBuiltins(): void
     {
         $replacer = new ClassmapReplacer('WPS_', ['stdClass', 'Exception', 'DateTime']);

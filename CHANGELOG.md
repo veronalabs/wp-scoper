@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.2 - 2026-07-22
+
+### Fixed
+- **Quoted text fragments renamed as if they were class references**: `ClassmapReplacer` prefixed every quoted occurrence of a global class name, including quoted words that are not class references at all but pieces of a string being concatenated. The most damaging case was Eloquent, which derives accessor and mutator method names with `'get' . Str::studly($key) . 'Attribute'` — because Symfony's php80 polyfill declares a global `Attribute` stub, the trailing fragment became `'<Prefix>Attribute'` and every `get*Attribute()` / `set*Attribute()` on every model silently stopped being called, with raw column values surfacing instead of the accessor's return value. No error was raised, so the breakage only showed up as wrong data at runtime. Quoted strings adjacent to a concatenation dot on either side are now left untouched; standalone quoted class references (`class_exists('Foo')`, array keys, `$class = 'Foo'`) are still prefixed as before.
+
+---
+
 ## 1.4.1 - 2026-06-04
 
 ### Changed
